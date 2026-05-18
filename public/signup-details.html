@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GymRow — Sign Up Details</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .goal-card {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .goal-card:hover { border-color: rgba(255,255,255,0.3); }
+    .goal-card.selected { border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.07); }
+    .goal-icon { font-size: 22px; }
+    .goal-name { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; letter-spacing: 1px; font-weight: 600; }
+    .goal-desc { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="logo-area" style="padding-top:40px">
+    <img src="gymrow.jpg" alt="GymRow" style="width:180px;border-radius:12px;" />
+    <div class="logo-sub">Create Your Profile</div>
+  </div>
+
+  <div id="msg" class="msg" style="display:none"></div>
+
+  <div class="card fade-in">
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="name" placeholder="Your name" />
+    </div>
+
+    <div class="form-group">
+      <label>Date of Birth</label>
+      <input type="date" id="dob" />
+      <div id="age-display" class="text-muted mt-8" style="display:none">Age: <strong id="age-val"></strong></div>
+    </div>
+
+    <div class="form-group">
+      <label>Height</label>
+      <div class="input-row">
+        <input type="number" id="height" placeholder="0" min="1" />
+        <select class="unit-select" id="heightUnit">
+          <option value="cm">cm</option>
+          <option value="in">in</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Weight</label>
+      <div class="input-row">
+        <input type="number" id="weight" placeholder="0" min="1" />
+        <select class="unit-select" id="weightUnit">
+          <option value="kg">kg</option>
+          <option value="lbs">lbs</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Your Gym</label>
+      <select id="gym">
+        <option value="">— Select Gym —</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Fitness Goal</label>
+      <div id="goal-picker">
+        <div class="goal-card" onclick="selectGoal(this,'build_muscle')" data-goal="build_muscle">
+          <div class="goal-icon">💪</div>
+          <div>
+            <div class="goal-name">Build Muscle</div>
+            <div class="goal-desc">High protein · Calorie surplus</div>
+          </div>
+        </div>
+        <div class="goal-card" onclick="selectGoal(this,'maintain')" data-goal="maintain">
+          <div class="goal-icon">⚖️</div>
+          <div>
+            <div class="goal-name">Maintain Weight</div>
+            <div class="goal-desc">Balanced macros · Maintenance calories</div>
+          </div>
+        </div>
+        <div class="goal-card" onclick="selectGoal(this,'lose_fat')" data-goal="lose_fat">
+          <div class="goal-icon">🔥</div>
+          <div>
+            <div class="goal-name">Lose Fat</div>
+            <div class="goal-desc">High protein · Calorie deficit</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary mt-16" onclick="saveDone()">Done</button>
+  </div>
+
+</div>
+<script src="app.js"></script>
+<script>
+  const user = requireAuth();
+  if (user && user.name && user.subscription) window.location.href = 'home.html';
+
+  let selectedGoal = null;
+
+  // Populate gyms
+  const gymSel = document.getElementById('gym');
+  GYMS.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g; opt.textContent = g;
+    gymSel.appendChild(opt);
+  });
+
+  // Pre-fill if returning
+  if (user && user.name) {
+    document.getElementById('name').value = user.name || '';
+    document.getElementById('dob').value = user.dob || '';
+    document.getElementById('height').value = user.height || '';
+    document.getElementById('heightUnit').value = user.heightUnit || 'cm';
+    document.getElementById('weight').value = user.weight || '';
+    document.getElementById('weightUnit').value = user.weightUnit || 'kg';
+    document.getElementById('gym').value = user.gym || '';
+    if (user.goal) {
+      selectedGoal = user.goal;
+      const card = document.querySelector(`[data-goal="${user.goal}"]`);
+      if (card) card.classList.add('selected');
+    }
+    updateAge();
+  }
+
+  document.getElementById('dob').addEventListener('change', updateAge);
+
+  function updateAge() {
+    const dob = document.getElementById('dob').value;
+    if (!dob) return;
+    document.getElementById('age-val').textContent = calcAge(dob);
+    document.getElementById('age-display').style.display = 'block';
+  }
+
+  function selectGoal(el, goal) {
+    document.querySelectorAll('.goal-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedGoal = goal;
+  }
+
+  async function saveDone() {
+    const name = document.getElementById('name').value.trim();
+    const dob = document.getElementById('dob').value;
+    const height = parseFloat(document.getElementById('height').value);
+    const heightUnit = document.getElementById('heightUnit').value;
+    const weight = parseFloat(document.getElementById('weight').value);
+    const weightUnit = document.getElementById('weightUnit').value;
+    const gym = document.getElementById('gym').value;
+    const msg = document.getElementById('msg');
+
+    if (!name) { showMsg(msg, 'Please enter your name.'); return; }
+    if (!dob) { showMsg(msg, 'Please enter your date of birth.'); return; }
+    if (!height || isNaN(height)) { showMsg(msg, 'Please enter your height.'); return; }
+    if (!weight || isNaN(weight)) { showMsg(msg, 'Please enter your weight.'); return; }
+    if (!gym) { showMsg(msg, 'Please select your gym.'); return; }
+    if (!selectedGoal) { showMsg(msg, 'Please select your fitness goal.'); return; }
+
+    const data = await apiPut(`/user/${user.email}`, {
+      name, dob, height, heightUnit, weight, weightUnit, gym, goal: selectedGoal
+    });
+
+    if (data.error) { showMsg(msg, data.error); return; }
+    setSession(data.user);
+    window.location.href = 'subscription.html';
+  }
+</script>
+</body>
+</html>

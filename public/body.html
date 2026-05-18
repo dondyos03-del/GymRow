@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GymRow — Body</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .body-field { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); }
+    .body-field:last-child { border-bottom:none; }
+    .body-field-label { font-family:'Barlow Condensed',sans-serif; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--text3); }
+    .body-field-value { font-family:'Barlow Condensed',sans-serif; font-size:18px; letter-spacing:1px; font-weight:600; }
+
+    .goal-card-sm { background:var(--bg3); border:1px solid var(--border2); border-radius:var(--radius); padding:11px 14px; cursor:pointer; transition:all 0.2s; margin-bottom:8px; display:flex; align-items:center; gap:12px; }
+    .goal-card-sm:hover { border-color:rgba(255,255,255,0.3); }
+    .goal-card-sm.selected { border-color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.07); }
+    .goal-name-sm { font-family:'Barlow Condensed',sans-serif; font-size:15px; letter-spacing:1px; font-weight:600; }
+    .goal-desc-sm { font-size:11px; color:var(--text3); margin-top:2px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top-bar">
+    <a href="home.html" class="back-btn">← Back</a>
+    <div class="top-bar-title">Body</div>
+    <button class="btn btn-sm btn-secondary" id="edit-btn" onclick="toggleEdit()">Edit</button>
+  </div>
+
+  <div id="msg" class="msg" style="display:none;margin:8px 20px"></div>
+
+  <!-- VIEW MODE -->
+  <div id="view-mode" class="fade-in">
+    <div class="card" style="margin-top:16px">
+      <div class="body-field"><div class="body-field-label">Name</div><div class="body-field-value" id="v-name">—</div></div>
+      <div class="body-field"><div class="body-field-label">Age</div><div class="body-field-value" id="v-age">—</div></div>
+      <div class="body-field"><div class="body-field-label">Height</div><div class="body-field-value" id="v-height">—</div></div>
+      <div class="body-field"><div class="body-field-label">Weight</div><div class="body-field-value" id="v-weight">—</div></div>
+      <div class="body-field"><div class="body-field-label">Gym</div><div class="body-field-value" id="v-gym">—</div></div>
+      <div class="body-field"><div class="body-field-label">Goal</div><div class="body-field-value" id="v-goal">—</div></div>
+      <div class="body-field"><div class="body-field-label">Subscription</div><div class="body-field-value" id="v-plan">—</div></div>
+    </div>
+  </div>
+
+  <!-- EDIT MODE -->
+  <div id="edit-mode" style="display:none">
+    <div class="card" style="margin-top:16px">
+
+      <div class="form-group">
+        <label>Height</label>
+        <div class="input-row">
+          <input type="number" id="e-height" placeholder="0" min="1" />
+          <select class="unit-select" id="e-heightUnit">
+            <option value="cm">cm</option>
+            <option value="in">in</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Weight</label>
+        <div class="input-row">
+          <input type="number" id="e-weight" placeholder="0" min="1" />
+          <select class="unit-select" id="e-weightUnit">
+            <option value="kg">kg</option>
+            <option value="lbs">lbs</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Date of Birth</label>
+        <input type="date" id="e-dob" />
+      </div>
+
+      <div class="form-group">
+        <label>Gym</label>
+        <select id="e-gym"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Fitness Goal</label>
+        <div id="e-goal-picker">
+          <div class="goal-card-sm" onclick="selectGoal(this,'build_muscle')" data-goal="build_muscle">
+            <span style="font-size:18px">💪</span>
+            <div><div class="goal-name-sm">Build Muscle</div><div class="goal-desc-sm">High protein · Calorie surplus</div></div>
+          </div>
+          <div class="goal-card-sm" onclick="selectGoal(this,'maintain')" data-goal="maintain">
+            <span style="font-size:18px">⚖️</span>
+            <div><div class="goal-name-sm">Maintain Weight</div><div class="goal-desc-sm">Balanced macros · Maintenance</div></div>
+          </div>
+          <div class="goal-card-sm" onclick="selectGoal(this,'lose_fat')" data-goal="lose_fat">
+            <span style="font-size:18px">🔥</span>
+            <div><div class="goal-name-sm">Lose Fat</div><div class="goal-desc-sm">High protein · Calorie deficit</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Subscription Plan</label>
+        <select id="e-plan">
+          <option value="Standard">Standard — 59 SAR</option>
+          <option value="Pro">Pro — 79 SAR</option>
+          <option value="VIP">VIP — 109 SAR</option>
+        </select>
+      </div>
+
+      <div class="flex-row mt-16">
+        <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script src="app.js"></script>
+<script>
+  const user = requireAuth();
+  let currentUser = null;
+  let editMode = false;
+  let selectedGoal = null;
+
+  const GOAL_LABELS = { build_muscle: '💪 Build Muscle', maintain: '⚖️ Maintain Weight', lose_fat: '🔥 Lose Fat' };
+
+  // Populate gyms
+  const gymSel = document.getElementById('e-gym');
+  const none = document.createElement('option'); none.value=''; none.textContent='— Select Gym —';
+  gymSel.appendChild(none);
+  GYMS.forEach(g => { const o=document.createElement('option'); o.value=g; o.textContent=g; gymSel.appendChild(o); });
+
+  async function loadBody() {
+    const data = await apiGet(`/user/${user.email}`);
+    if (data.error) return;
+    currentUser = data.user;
+    setSession(data.user);
+    renderView();
+  }
+
+  function renderView() {
+    const u = currentUser;
+    document.getElementById('v-name').textContent = u.name || '—';
+    document.getElementById('v-age').textContent = u.dob ? `${calcAge(u.dob)} years` : '—';
+    document.getElementById('v-height').textContent = fmtHeight(u.height, u.heightUnit);
+    document.getElementById('v-weight').textContent = fmtWeight(u.weight, u.weightUnit);
+    document.getElementById('v-gym').textContent = u.gym || '—';
+    document.getElementById('v-goal').textContent = GOAL_LABELS[u.goal] || '—';
+
+    const plan = u.subscription || '—';
+    const badge = document.createElement('span');
+    badge.textContent = plan;
+    badge.className = `plan-badge ${planClass(plan)}`;
+    const planEl = document.getElementById('v-plan');
+    planEl.innerHTML = ''; planEl.appendChild(badge);
+  }
+
+  function selectGoal(el, goal) {
+    document.querySelectorAll('#e-goal-picker .goal-card-sm').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedGoal = goal;
+  }
+
+  function toggleEdit() {
+    editMode = !editMode;
+    if (editMode) {
+      const u = currentUser;
+      document.getElementById('e-height').value = u.height || '';
+      document.getElementById('e-heightUnit').value = u.heightUnit || 'cm';
+      document.getElementById('e-weight').value = u.weight || '';
+      document.getElementById('e-weightUnit').value = u.weightUnit || 'kg';
+      document.getElementById('e-dob').value = u.dob || '';
+      document.getElementById('e-gym').value = u.gym || '';
+      document.getElementById('e-plan').value = u.subscription || 'Standard';
+      selectedGoal = u.goal || null;
+      if (selectedGoal) {
+        const card = document.querySelector(`#e-goal-picker [data-goal="${selectedGoal}"]`);
+        if (card) card.classList.add('selected');
+      }
+      document.getElementById('view-mode').style.display = 'none';
+      document.getElementById('edit-mode').style.display = 'block';
+      document.getElementById('edit-btn').textContent = 'Cancel';
+    } else { cancelEdit(); }
+  }
+
+  function cancelEdit() {
+    editMode = false;
+    document.getElementById('view-mode').style.display = 'block';
+    document.getElementById('edit-mode').style.display = 'none';
+    document.getElementById('edit-btn').textContent = 'Edit';
+  }
+
+  async function saveEdit() {
+    const msg = document.getElementById('msg');
+    const updates = {
+      height: parseFloat(document.getElementById('e-height').value) || currentUser.height,
+      heightUnit: document.getElementById('e-heightUnit').value,
+      weight: parseFloat(document.getElementById('e-weight').value) || currentUser.weight,
+      weightUnit: document.getElementById('e-weightUnit').value,
+      dob: document.getElementById('e-dob').value || currentUser.dob,
+      gym: document.getElementById('e-gym').value || currentUser.gym,
+      subscription: document.getElementById('e-plan').value,
+      goal: selectedGoal || currentUser.goal
+    };
+    const data = await apiPut(`/user/${user.email}`, updates);
+    if (data.error) { showMsg(msg, data.error); return; }
+    currentUser = data.user; setSession(data.user);
+    cancelEdit(); renderView();
+    showMsg(msg, 'Profile updated!', 'success');
+    setTimeout(() => { document.getElementById('msg').style.display='none'; }, 2000);
+  }
+
+  loadBody();
+</script>
+</body>
+</html>

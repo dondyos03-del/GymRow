@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GymRow — Nutrition</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .target-bar-wrap { margin-top: 6px; }
+    .target-bar-track { background: var(--bg4); border-radius: 4px; height: 6px; overflow: hidden; }
+    .target-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+    .target-bar-label { display: flex; justify-content: space-between; font-family: 'Barlow Condensed', sans-serif; font-size: 10px; letter-spacing: 1px; color: var(--text3); margin-bottom: 4px; }
+
+    .macro-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+    .macro-card-val { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 2px; line-height: 1; }
+    .macro-card-target { font-size: 11px; color: var(--text3); letter-spacing: 1px; margin-top: 2px; }
+    .macro-card-lbl { font-family: 'Barlow Condensed', sans-serif; font-size: 9px; letter-spacing: 2px; color: var(--text3); text-transform: uppercase; margin-top: 6px; }
+
+    .goal-tag { display: inline-flex; align-items: center; gap: 6px; font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border2); color: var(--text3); background: var(--bg3); }
+    .goal-tag.build_muscle { color: #aac4ff; border-color: rgba(170,196,255,0.3); background: rgba(170,196,255,0.05); }
+    .goal-tag.maintain { color: #2ecc71; border-color: rgba(46,204,113,0.3); background: rgba(46,204,113,0.05); }
+    .goal-tag.lose_fat { color: #ff9f43; border-color: rgba(255,159,67,0.3); background: rgba(255,159,67,0.05); }
+
+    .food-entry { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border); }
+    .food-entry:last-child { border-bottom:none; }
+    .food-entry-name { font-size:15px; font-weight:500; }
+    .food-entry-macros { font-size:12px; color:var(--text3); margin-top:2px; }
+    .food-entry-cal { font-family:'Barlow Condensed',sans-serif; font-size:18px; letter-spacing:1px; color:var(--text2); }
+
+    .cal-circle { text-align:center; padding:16px 0 8px; }
+    .cal-big { font-family:'Bebas Neue',sans-serif; font-size:58px; letter-spacing:4px; line-height:1; }
+    .cal-target-line { font-family:'Barlow Condensed',sans-serif; font-size:13px; letter-spacing:2px; color:var(--text3); margin-top:2px; }
+    .cal-remaining { font-family:'Barlow Condensed',sans-serif; font-size:13px; letter-spacing:2px; margin-top:4px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top-bar">
+    <a href="home.html" class="back-btn">← Back</a>
+    <div class="top-bar-title">Nutrition</div>
+    <button class="btn btn-sm btn-secondary" onclick="openAddFood()">+ Add</button>
+  </div>
+
+  <!-- Goal tag + date -->
+  <div style="padding:8px 20px 0;display:flex;align-items:center;justify-content:space-between;gap:10px">
+    <div id="goal-tag" class="goal-tag"></div>
+    <input type="date" id="date-picker" style="max-width:160px;font-size:13px;padding:7px 10px" />
+  </div>
+
+  <!-- Calorie Summary -->
+  <div class="card fade-in" style="margin-top:14px">
+    <div class="cal-circle">
+      <div class="cal-big" id="total-cal">0</div>
+      <div class="cal-target-line">of <span id="cal-target">—</span> kcal target</div>
+      <div class="cal-remaining" id="cal-remaining" style="color:var(--text3)"></div>
+    </div>
+
+    <!-- Calorie progress bar -->
+    <div class="target-bar-wrap" style="margin-bottom:16px">
+      <div class="target-bar-track">
+        <div class="target-bar-fill" id="cal-bar" style="background:#fff;width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Macro cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div class="macro-card">
+        <div class="macro-card-val" id="m-protein">0g</div>
+        <div class="macro-card-target">/ <span id="t-protein">—</span>g</div>
+        <div class="macro-card-lbl">Protein</div>
+        <div class="target-bar-wrap" style="margin-top:6px">
+          <div class="target-bar-track"><div class="target-bar-fill" id="bar-protein" style="background:#aac4ff;width:0%"></div></div>
+        </div>
+      </div>
+      <div class="macro-card">
+        <div class="macro-card-val" id="m-carbs">0g</div>
+        <div class="macro-card-target">/ <span id="t-carbs">—</span>g</div>
+        <div class="macro-card-lbl">Carbs</div>
+        <div class="target-bar-wrap" style="margin-top:6px">
+          <div class="target-bar-track"><div class="target-bar-fill" id="bar-carbs" style="background:#f9ca24;width:0%"></div></div>
+        </div>
+      </div>
+      <div class="macro-card">
+        <div class="macro-card-val" id="m-fat">0g</div>
+        <div class="macro-card-target">/ <span id="t-fat">—</span>g</div>
+        <div class="macro-card-lbl">Fat</div>
+        <div class="target-bar-wrap" style="margin-top:6px">
+          <div class="target-bar-track"><div class="target-bar-fill" id="bar-fat" style="background:#ff9f43;width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Food List -->
+  <div class="section-header mt-16">
+    <span class="section-title">Today's Foods</span>
+  </div>
+  <div class="card" style="margin-top:0">
+    <div id="food-list"><div class="text-center text-muted" style="padding:24px 0">No foods logged yet.</div></div>
+  </div>
+
+  <!-- Add Food Modal -->
+  <div class="modal-overlay" id="add-food-modal">
+    <div class="modal">
+      <div class="modal-title">Log Food</div>
+      <div class="form-group">
+        <label>Food Name</label>
+        <input type="text" id="food-name" placeholder="e.g. Grilled Chicken" />
+      </div>
+      <div class="form-group">
+        <label>Calories</label>
+        <input type="number" id="food-cal" placeholder="0" min="0" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Protein (g)</label>
+          <input type="number" id="food-protein" placeholder="0" min="0" step="0.1" />
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Carbs (g)</label>
+          <input type="number" id="food-carbs" placeholder="0" min="0" step="0.1" />
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Fat (g)</label>
+          <input type="number" id="food-fat" placeholder="0" min="0" step="0.1" />
+        </div>
+      </div>
+      <div id="food-msg" class="msg" style="display:none;margin-top:12px;margin-bottom:0"></div>
+      <div class="flex-row mt-16">
+        <button class="btn btn-secondary" onclick="closeAddFood()">Cancel</button>
+        <button class="btn btn-primary" onclick="logFood()">Log</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script src="app.js"></script>
+<script>
+  const user = requireAuth();
+  let allNutrition = [];
+  let selectedDate = today();
+  let targets = { calories: 2000, protein: 150, carbs: 200, fat: 60 };
+  let userData = null;
+
+  const datePicker = document.getElementById('date-picker');
+  datePicker.value = selectedDate;
+  datePicker.addEventListener('change', () => { selectedDate = datePicker.value; renderNutrition(); });
+
+  // ── CALCULATE TARGETS based on weight + goal ──
+  function calcTargets(weight, weightUnit, goal) {
+    // Convert to kg if needed
+    let wKg = parseFloat(weight) || 70;
+    if (weightUnit === 'lbs') wKg = wKg * 0.453592;
+
+    let calories, protein, carbs, fat;
+
+    // Base protein always high
+    if (goal === 'build_muscle') {
+      protein = Math.round(wKg * 2.2);       // 2.2g per kg
+      calories = Math.round(wKg * 38);        // slight surplus
+      fat = Math.round(wKg * 1.0);
+      carbs = Math.round((calories - protein * 4 - fat * 9) / 4);
+    } else if (goal === 'lose_fat') {
+      protein = Math.round(wKg * 2.4);       // preserve muscle
+      calories = Math.round(wKg * 28);        // deficit
+      fat = Math.round(wKg * 0.8);
+      carbs = Math.round((calories - protein * 4 - fat * 9) / 4);
+    } else { // maintain
+      protein = Math.round(wKg * 1.8);
+      calories = Math.round(wKg * 33);
+      fat = Math.round(wKg * 1.0);
+      carbs = Math.round((calories - protein * 4 - fat * 9) / 4);
+    }
+
+    carbs = Math.max(carbs, 20); // floor
+    return { calories, protein, carbs, fat };
+  }
+
+  const GOAL_LABELS = {
+    build_muscle: '💪 Build Muscle',
+    maintain: '⚖️ Maintain Weight',
+    lose_fat: '🔥 Lose Fat'
+  };
+
+  async function loadNutrition() {
+    const data = await apiGet(`/user/${user.email}`);
+    if (data.error) return;
+    userData = data.user;
+    allNutrition = data.user.nutrition || [];
+
+    // Set goal tag
+    const goal = data.user.goal || 'maintain';
+    const tag = document.getElementById('goal-tag');
+    tag.textContent = GOAL_LABELS[goal] || goal;
+    tag.className = `goal-tag ${goal}`;
+
+    // Calculate targets
+    targets = calcTargets(data.user.weight, data.user.weightUnit, goal);
+
+    // Set target displays
+    document.getElementById('cal-target').textContent = targets.calories;
+    document.getElementById('t-protein').textContent = targets.protein;
+    document.getElementById('t-carbs').textContent = targets.carbs;
+    document.getElementById('t-fat').textContent = targets.fat;
+
+    renderNutrition();
+  }
+
+  function todaysEntries() {
+    return allNutrition.filter(e => e.date === selectedDate);
+  }
+
+  function barWidth(val, target) {
+    if (!target) return 0;
+    return Math.min(100, Math.round((val / target) * 100));
+  }
+
+  function renderNutrition() {
+    const entries = todaysEntries();
+    const totCal = entries.reduce((s,e) => s + (parseFloat(e.calories)||0), 0);
+    const totProt = entries.reduce((s,e) => s + (parseFloat(e.protein)||0), 0);
+    const totCarb = entries.reduce((s,e) => s + (parseFloat(e.carbs)||0), 0);
+    const totFat = entries.reduce((s,e) => s + (parseFloat(e.fat)||0), 0);
+
+    document.getElementById('total-cal').textContent = Math.round(totCal);
+
+    // Remaining
+    const rem = targets.calories - Math.round(totCal);
+    const remEl = document.getElementById('cal-remaining');
+    if (rem > 0) { remEl.textContent = `${rem} kcal remaining`; remEl.style.color = 'var(--text3)'; }
+    else if (rem < 0) { remEl.textContent = `${Math.abs(rem)} kcal over target`; remEl.style.color = '#ff3b3b'; }
+    else { remEl.textContent = 'Target reached!'; remEl.style.color = '#2ecc71'; }
+
+    // Bars
+    const calPct = barWidth(totCal, targets.calories);
+    document.getElementById('cal-bar').style.width = calPct + '%';
+    document.getElementById('cal-bar').style.background = calPct > 105 ? '#ff3b3b' : calPct >= 90 ? '#2ecc71' : '#fff';
+
+    document.getElementById('m-protein').textContent = Math.round(totProt) + 'g';
+    document.getElementById('m-carbs').textContent = Math.round(totCarb) + 'g';
+    document.getElementById('m-fat').textContent = Math.round(totFat) + 'g';
+
+    document.getElementById('bar-protein').style.width = barWidth(totProt, targets.protein) + '%';
+    document.getElementById('bar-carbs').style.width = barWidth(totCarb, targets.carbs) + '%';
+    document.getElementById('bar-fat').style.width = barWidth(totFat, targets.fat) + '%';
+
+    // Food list
+    const list = document.getElementById('food-list');
+    if (entries.length === 0) {
+      list.innerHTML = `<div class="text-center text-muted" style="padding:24px 0">No foods logged for this day.</div>`;
+      return;
+    }
+    list.innerHTML = entries.map(e => `
+      <div class="food-entry">
+        <div>
+          <div class="food-entry-name">${e.food}</div>
+          <div class="food-entry-macros">P: ${e.protein||0}g · C: ${e.carbs||0}g · F: ${e.fat||0}g</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="food-entry-cal">${e.calories}<span style="font-size:11px;color:var(--text3)"> kcal</span></div>
+          <button onclick="removeFood('${e.id}')" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:4px 6px;transition:color 0.2s" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text3)'">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function openAddFood() {
+    ['food-name','food-cal','food-protein','food-carbs','food-fat'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('food-msg').style.display = 'none';
+    document.getElementById('add-food-modal').classList.add('active');
+  }
+
+  function closeAddFood() { document.getElementById('add-food-modal').classList.remove('active'); }
+
+  async function logFood() {
+    const food = document.getElementById('food-name').value.trim();
+    const calories = parseFloat(document.getElementById('food-cal').value) || 0;
+    const protein = parseFloat(document.getElementById('food-protein').value) || 0;
+    const carbs = parseFloat(document.getElementById('food-carbs').value) || 0;
+    const fat = parseFloat(document.getElementById('food-fat').value) || 0;
+    const msg = document.getElementById('food-msg');
+    if (!food) { showMsg(msg, 'Please enter a food name.'); return; }
+    if (calories <= 0) { showMsg(msg, 'Please enter calories.'); return; }
+    const data = await apiPost(`/user/${user.email}/nutrition`, { food, calories, protein, carbs, fat, date: selectedDate });
+    if (data.error) { showMsg(msg, data.error); return; }
+    allNutrition.push(data.entry);
+    renderNutrition();
+    closeAddFood();
+  }
+
+  async function removeFood(entryId) {
+    await apiDelete(`/user/${user.email}/nutrition/${entryId}`);
+    allNutrition = allNutrition.filter(e => e.id !== entryId);
+    renderNutrition();
+  }
+
+  loadNutrition();
+</script>
+</body>
+</html>

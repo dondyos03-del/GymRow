@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GymRow — Home</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="page">
+
+  <div class="top-bar">
+    <a href="body.html" class="account-btn" id="acct-btn">
+      <div class="account-avatar" id="acct-avatar">?</div>
+      <span class="account-name" id="acct-name">Loading...</span>
+    </a>
+    <div id="plan-display" class="plan-badge"></div>
+  </div>
+
+  <div style="padding: 24px 20px 8px">
+    <div style="font-family:'Bebas Neue',sans-serif; font-size:13px; letter-spacing:4px; color:var(--text3); text-transform:uppercase">Good Day</div>
+    <div style="font-family:'Bebas Neue',sans-serif; font-size:42px; letter-spacing:3px; line-height:1.1" id="greeting-name">—</div>
+  </div>
+
+  <div class="home-grid fade-in">
+
+    <a href="exercises.html" class="home-card">
+      <div class="home-card-icon">🏋️</div>
+      <div>
+        <div class="home-card-label">My Splits</div>
+        <div class="home-card-sub" id="ex-count">0 splits</div>
+      </div>
+    </a>
+
+    <a href="body.html" class="home-card">
+      <div class="home-card-icon">📊</div>
+      <div>
+        <div class="home-card-label">Body</div>
+        <div class="home-card-sub" id="body-preview">Profile & Stats</div>
+      </div>
+    </a>
+
+    <a href="nutrition.html" class="home-card">
+      <div class="home-card-icon">🥗</div>
+      <div>
+        <div class="home-card-label">Nutrition</div>
+        <div class="home-card-sub">Calories & macros</div>
+      </div>
+    </a>
+
+    <a href="wearable.html" class="home-card">
+      <div class="home-card-icon">⌚</div>
+      <div>
+        <div class="home-card-label">Wearable</div>
+        <div class="home-card-sub" id="recovery-preview">Sleep & Activity</div>
+      </div>
+    </a>
+
+  </div>
+
+  <div style="padding: 0 20px; margin-top: auto">
+    <button class="btn btn-ghost" style="width:100%; margin-top:20px" onclick="logout()">Sign Out</button>
+  </div>
+
+</div>
+<script src="app.js"></script>
+<script>
+  const user = requireAuth();
+  if (user) requireProfile(user);
+
+  async function loadHome() {
+    const data = await apiGet(`/user/${user.email}`);
+    if (data.error) return;
+    const u = data.user;
+    setSession(u);
+
+    document.getElementById('acct-avatar').textContent = initials(u.name);
+    document.getElementById('acct-name').textContent = u.name?.split(' ')[0] || 'You';
+    document.getElementById('greeting-name').textContent = u.name?.split(' ')[0]?.toUpperCase() || '—';
+
+    const plan = u.subscription || '';
+    const pb = document.getElementById('plan-display');
+    pb.textContent = plan;
+    pb.className = `plan-badge ${planClass(plan)}`;
+
+    document.getElementById('ex-count').textContent = `${(u.splits || []).length} split${(u.splits||[]).length !== 1 ? 's' : ''}`;
+    document.getElementById('body-preview').textContent = `${fmtHeight(u.height, u.heightUnit)} · ${fmtWeight(u.weight, u.weightUnit)}`;
+
+    // Recovery preview from stored demo data
+    const recKey = `gymrow_recovery_${today()}`;
+    try {
+      const rec = JSON.parse(localStorage.getItem(recKey));
+      if (rec) document.getElementById('recovery-preview').textContent = `${rec.recovery}% recovery · ${rec.sleep}h sleep`;
+    } catch(e) {}
+  }
+
+  loadHome();
+
+  function logout() {
+    clearSession();
+    window.location.href = 'login.html';
+  }
+</script>
+</body>
+</html>

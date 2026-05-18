@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GymRow — Wearable</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Device badge */
+    .device-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--bg2); border: 1px solid var(--border2);
+      border-radius: 20px; padding: 6px 14px 6px 8px;
+      font-family: 'Barlow Condensed', sans-serif; font-size: 12px;
+      letter-spacing: 1px; color: var(--text2);
+    }
+    .device-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #2ecc71;
+      box-shadow: 0 0 6px #2ecc71; animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+    }
+
+    /* Recovery ring */
+    .recovery-ring-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px 0 8px;
+    }
+    .ring-svg { transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: var(--bg4); stroke-width: 10; }
+    .ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+    .ring-center {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .ring-wrap { position: relative; width: 140px; height: 140px; }
+    .ring-score { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 2px; line-height: 1; }
+    .ring-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--text3); text-transform: uppercase; }
+
+    /* Stat grid */
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px; margin-bottom: 12px; }
+    .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+    .stat-card-full { grid-column: 1 / -1; }
+    .stat-icon { font-size: 20px; margin-bottom: 8px; }
+    .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 2px; line-height: 1; }
+    .stat-unit { font-size: 13px; color: var(--text3); margin-left: 2px; }
+    .stat-lbl { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; letter-spacing: 2px; color: var(--text3); text-transform: uppercase; margin-top: 4px; }
+    .stat-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+    /* Sleep stages */
+    .sleep-stages { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 10px 0 6px; gap: 2px; }
+    .sleep-stage { border-radius: 2px; height: 100%; }
+    .sleep-stage-labels { display: flex; justify-content: space-between; }
+    .sleep-stage-label { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; letter-spacing: 1px; color: var(--text3); }
+
+    /* HR bar */
+    .hr-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .hr-row:last-child { border-bottom: none; }
+    .hr-key { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 1px; color: var(--text3); text-transform: uppercase; }
+    .hr-val { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; }
+
+    /* Activity bar */
+    .activity-bar-wrap { margin-top: 8px; }
+    .activity-bar-track { background: var(--bg4); border-radius: 4px; height: 6px; }
+    .activity-bar-fill { height: 100%; border-radius: 4px; }
+
+    /* Steps bar */
+    .steps-hours { display: flex; align-items: flex-end; gap: 3px; height: 40px; margin-top: 10px; }
+    .steps-bar { flex: 1; border-radius: 2px 2px 0 0; background: rgba(255,255,255,0.15); min-height: 3px; transition: height 0.5s ease; }
+    .steps-bar.active { background: rgba(255,255,255,0.6); }
+
+    .section-lbl { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--text3); text-transform: uppercase; padding: 0 20px; margin: 16px 0 8px; }
+
+    .readiness-tag { display: inline-block; font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top-bar">
+    <a href="home.html" class="back-btn">← Back</a>
+    <div class="top-bar-title">Wearable</div>
+    <div class="device-badge">
+      <div class="device-dot"></div>
+      <span id="device-name">Apple Watch</span>
+    </div>
+  </div>
+
+  <!-- Recovery Ring -->
+  <div class="card fade-in" style="margin-top:16px">
+    <div class="recovery-ring-wrap">
+      <div class="ring-wrap">
+        <svg class="ring-svg" width="140" height="140" viewBox="0 0 140 140">
+          <circle class="ring-bg" cx="70" cy="70" r="60" />
+          <circle class="ring-fill" id="ring-fill" cx="70" cy="70" r="60"
+            stroke="#2ecc71"
+            stroke-dasharray="377"
+            stroke-dashoffset="377" />
+        </svg>
+        <div class="ring-center">
+          <div class="ring-score" id="recovery-score">—</div>
+          <div class="ring-label">Recovery</div>
+        </div>
+      </div>
+      <div id="readiness-tag" class="readiness-tag" style="margin-top:12px"></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;letter-spacing:1px" id="recovery-msg"></div>
+    </div>
+  </div>
+
+  <!-- Sleep -->
+  <div class="section-lbl">Sleep</div>
+  <div class="stat-grid">
+    <div class="stat-card stat-card-full">
+      <div class="stat-icon">🌙</div>
+      <div style="display:flex;align-items:flex-end;gap:12px">
+        <div>
+          <div class="stat-val" id="sleep-total">—<span class="stat-unit">h</span></div>
+          <div class="stat-lbl">Total Sleep</div>
+        </div>
+        <div style="margin-bottom:4px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--text2)" id="sleep-quality-score"></div>
+          <div class="stat-lbl">Quality</div>
+        </div>
+      </div>
+      <!-- Sleep stages bar -->
+      <div class="sleep-stages" id="sleep-stages-bar"></div>
+      <div class="sleep-stage-labels">
+        <span class="sleep-stage-label" id="lbl-deep"></span>
+        <span class="sleep-stage-label" id="lbl-rem"></span>
+        <span class="sleep-stage-label" id="lbl-light"></span>
+        <span class="sleep-stage-label" id="lbl-awake"></span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🛏️</div>
+      <div class="stat-val" id="sleep-start">—</div>
+      <div class="stat-lbl">Bedtime</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⏰</div>
+      <div class="stat-val" id="sleep-end">—</div>
+      <div class="stat-lbl">Wake Up</div>
+    </div>
+  </div>
+
+  <!-- Heart -->
+  <div class="section-lbl">Heart</div>
+  <div style="padding:0 20px;margin-bottom:12px">
+    <div class="card" style="margin:0">
+      <div class="hr-row">
+        <div class="hr-key">Resting HR</div>
+        <div><span class="hr-val" id="hr-resting">—</span> <span style="font-size:12px;color:var(--text3)">bpm</span></div>
+      </div>
+      <div class="hr-row">
+        <div class="hr-key">HRV</div>
+        <div><span class="hr-val" id="hr-hrv">—</span> <span style="font-size:12px;color:var(--text3)">ms</span></div>
+      </div>
+      <div class="hr-row">
+        <div class="hr-key">SpO2</div>
+        <div><span class="hr-val" id="hr-spo2">—</span> <span style="font-size:12px;color:var(--text3)">%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity -->
+  <div class="section-lbl">Activity</div>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon">👟</div>
+      <div class="stat-val" id="act-steps">—</div>
+      <div class="stat-lbl">Steps</div>
+      <div class="activity-bar-wrap">
+        <div class="activity-bar-track"><div class="activity-bar-fill" id="bar-steps" style="background:#aac4ff"></div></div>
+      </div>
+      <div class="stat-sub" id="steps-goal">/ 10,000</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-val" id="act-cal">—</div>
+      <div class="stat-lbl">Cal Burned</div>
+      <div class="activity-bar-wrap">
+        <div class="activity-bar-track"><div class="activity-bar-fill" id="bar-cal" style="background:#ff9f43"></div></div>
+      </div>
+      <div class="stat-sub" id="cal-goal">/ 600</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⚡</div>
+      <div class="stat-val" id="act-active">—<span class="stat-unit">min</span></div>
+      <div class="stat-lbl">Active Minutes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🧍</div>
+      <div class="stat-val" id="act-stand">—<span class="stat-unit">h</span></div>
+      <div class="stat-lbl">Stand Hours</div>
+    </div>
+
+    <!-- Steps hourly chart -->
+    <div class="stat-card stat-card-full">
+      <div class="stat-lbl" style="margin-bottom:4px">Steps by Hour</div>
+      <div class="steps-hours" id="steps-chart"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <span style="font-size:9px;color:var(--text3)">12AM</span>
+        <span style="font-size:9px;color:var(--text3)">6AM</span>
+        <span style="font-size:9px;color:var(--text3)">12PM</span>
+        <span style="font-size:9px;color:var(--text3)">6PM</span>
+        <span style="font-size:9px;color:var(--text3)">Now</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:0 20px 40px">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text3);text-align:center;text-transform:uppercase">
+      Demo data · Simulated from wearable
+    </div>
+  </div>
+
+</div>
+<script src="app.js"></script>
+<script>
+requireAuth();
+
+// ── SEEDED RANDOM (random per day, consistent within same day) ──
+function seededRand(seed) {
+  let s = seed ^ 0xdeadbeef;
+  s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
+  s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
+  s = s ^ (s >>> 16);
+  return (s >>> 0) / 0xffffffff;
+}
+
+let _seedCounter = 0;
+let _daySeed = 0;
+
+function initSeed() {
+  const d = new Date();
+  const dateNum = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  const user = getSession();
+  const emailHash = (user?.email || 'demo').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  _daySeed = dateNum + emailHash * 31;
+  _seedCounter = 0;
+}
+
+function rnd(min, max) {
+  _seedCounter++;
+  const val = seededRand(_daySeed * 1000 + _seedCounter);
+  return Math.floor(val * (max - min + 1)) + min;
+}
+
+function generateDemoData() {
+  initSeed();
+
+  const recovery = rnd(42, 96);
+  const sleepH = rnd(5, 9);
+  const sleepMin = rnd(0, 59);
+  const sleepTotal = parseFloat((sleepH + sleepMin / 60).toFixed(1));
+
+  const deep = rnd(12, 22);
+  const rem = rnd(18, 28);
+  const awake = rnd(3, 8);
+  const light = 100 - deep - rem - awake;
+
+  const bedHour = rnd(21, 25) % 24;
+  const bedMin = rnd(0, 59);
+  const wakeHour = (bedHour + sleepH + 1) % 24;
+
+  const steps = rnd(2800, 14200);
+  const calBurned = rnd(280, 750);
+  const activeMin = rnd(15, 85);
+  const standHours = rnd(6, 14);
+  const restingHR = rnd(48, 72);
+  const hrv = rnd(28, 95);
+  const spo2 = rnd(95, 100);
+
+  const currentHour = new Date().getHours();
+  const hourlySteps = Array.from({length: 24}, (_, i) => {
+    if (i > currentHour) return 0;
+    if (i < 6) return rnd(0, 50);
+    return rnd(80, 900);
+  });
+
+  return { recovery, sleepTotal, deep, rem, light, awake, bedHour, bedMin, wakeHour, steps, calBurned, activeMin, standHours, restingHR, hrv, spo2, hourlySteps };
+}
+
+function fmt12(h, m) {
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hh = h % 12 || 12;
+  return `${hh}:${String(m||0).padStart(2,'0')} ${ampm}`;
+}
+
+function recoveryColor(score) {
+  if (score >= 70) return '#2ecc71';
+  if (score >= 40) return '#f9ca24';
+  return '#ff3b3b';
+}
+
+function recoveryLabel(score) {
+  if (score >= 70) return { text: '✦ Optimal', bg: 'rgba(46,204,113,0.1)', color: '#2ecc71', border: 'rgba(46,204,113,0.3)', msg: 'Your body is well recovered. Push hard today.' };
+  if (score >= 40) return { text: '◈ Moderate', bg: 'rgba(249,202,36,0.1)', color: '#f9ca24', border: 'rgba(249,202,36,0.3)', msg: 'Moderate recovery. Consider a lighter session.' };
+  return { text: '▲ Low', bg: 'rgba(255,59,59,0.1)', color: '#ff3b3b', border: 'rgba(255,59,59,0.3)', msg: 'Low recovery. Rest or do mobility work today.' };
+}
+
+function qualityLabel(sleep) {
+  if (sleep >= 8) return 'Excellent';
+  if (sleep >= 7) return 'Good';
+  if (sleep >= 6) return 'Fair';
+  return 'Poor';
+}
+
+function render() {
+  const d = generateDemoData();
+  const color = recoveryColor(d.recovery);
+  const label = recoveryLabel(d.recovery);
+
+  // Recovery ring
+  const circumference = 377;
+  const offset = circumference - (d.recovery / 100) * circumference;
+  const ring = document.getElementById('ring-fill');
+  ring.style.stroke = color;
+  setTimeout(() => { ring.style.strokeDashoffset = offset; }, 100);
+  document.getElementById('recovery-score').textContent = d.recovery;
+  document.getElementById('recovery-score').style.color = color;
+
+  const tag = document.getElementById('readiness-tag');
+  tag.textContent = label.text;
+  tag.style.background = label.bg;
+  tag.style.color = label.color;
+  tag.style.border = `1px solid ${label.border}`;
+  document.getElementById('recovery-msg').textContent = label.msg;
+
+  // Sleep
+  document.getElementById('sleep-total').innerHTML = `${d.sleepTotal}<span class="stat-unit">h</span>`;
+  document.getElementById('sleep-quality-score').textContent = qualityLabel(d.sleepTotal);
+  document.getElementById('sleep-start').textContent = fmt12(d.bedHour, d.bedMin);
+  document.getElementById('sleep-end').textContent = fmt12(d.wakeHour, 0);
+
+  // Sleep stages bar
+  const stagesBar = document.getElementById('sleep-stages-bar');
+  stagesBar.innerHTML = `
+    <div class="sleep-stage" style="width:${d.deep}%;background:#6c63ff"></div>
+    <div class="sleep-stage" style="width:${d.rem}%;background:#2ecc71"></div>
+    <div class="sleep-stage" style="width:${d.light}%;background:#aac4ff"></div>
+    <div class="sleep-stage" style="width:${d.awake}%;background:var(--bg4)"></div>
+  `;
+  document.getElementById('lbl-deep').innerHTML = `<span style="color:#6c63ff">■</span> Deep ${d.deep}%`;
+  document.getElementById('lbl-rem').innerHTML = `<span style="color:#2ecc71">■</span> REM ${d.rem}%`;
+  document.getElementById('lbl-light').innerHTML = `<span style="color:#aac4ff">■</span> Light ${d.light}%`;
+  document.getElementById('lbl-awake').innerHTML = `<span style="color:var(--text3)">■</span> Awake ${d.awake}%`;
+
+  // Heart
+  document.getElementById('hr-resting').textContent = d.restingHR;
+  document.getElementById('hr-hrv').textContent = d.hrv;
+  document.getElementById('hr-spo2').textContent = d.spo2;
+
+  // Activity
+  const stepGoal = 10000;
+  const calGoal = 600;
+  document.getElementById('act-steps').textContent = d.steps.toLocaleString();
+  document.getElementById('act-cal').textContent = d.calBurned;
+  document.getElementById('act-active').innerHTML = `${d.activeMin}<span class="stat-unit">min</span>`;
+  document.getElementById('act-stand').innerHTML = `${d.standHours}<span class="stat-unit">h</span>`;
+  document.getElementById('steps-goal').textContent = `/ ${stepGoal.toLocaleString()}`;
+  document.getElementById('cal-goal').textContent = `/ ${calGoal}`;
+  document.getElementById('bar-steps').style.width = Math.min(100, Math.round((d.steps / stepGoal) * 100)) + '%';
+  document.getElementById('bar-cal').style.width = Math.min(100, Math.round((d.calBurned / calGoal) * 100)) + '%';
+
+  // Hourly steps chart
+  const maxStep = Math.max(...d.hourlySteps, 1);
+  const currentHour = new Date().getHours();
+  document.getElementById('steps-chart').innerHTML = d.hourlySteps.map((s, i) => `
+    <div class="steps-bar ${i === currentHour ? 'active' : ''}"
+      style="height:${Math.max(3, Math.round((s / maxStep) * 40))}px"
+      title="${i}:00 — ${s} steps"></div>
+  `).join('');
+
+  // Save to localStorage for home preview
+  try {
+    const recKey = `gymrow_recovery_${today()}`;
+    localStorage.setItem(recKey, JSON.stringify({ recovery: d.recovery, sleep: d.sleepTotal }));
+  } catch(e) {}
+}
+
+render();
+</script>
+</body>
+</html>

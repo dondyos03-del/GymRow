@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GymRow — Subscription</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="page">
+
+  <div class="logo-area" style="padding-top:40px">
+    <img src="gymrow.jpg" alt="GymRow" style="width:180px; border-radius:12px;" />
+    <div class="logo-sub">Choose Your Plan</div>
+  </div>
+
+  <div id="msg" class="msg" style="display:none"></div>
+
+  <div class="sub-cards fade-in">
+
+    <div class="sub-card" id="card-standard" onclick="selectPlan('Standard')">
+      <div class="sub-card-left">
+        <div class="sub-name">Standard</div>
+        <div class="sub-tag">Core features included</div>
+      </div>
+      <div>
+        <div class="sub-price">59 <span>SAR/mo</span></div>
+      </div>
+    </div>
+
+    <div class="sub-card" id="card-pro" onclick="selectPlan('Pro')">
+      <div class="sub-card-left">
+        <div class="sub-name">Pro</div>
+        <div class="sub-tag">Advanced tracking</div>
+      </div>
+      <div>
+        <div class="sub-price">79 <span>SAR/mo</span></div>
+      </div>
+    </div>
+
+    <div class="sub-card" id="card-vip" onclick="selectPlan('VIP')">
+      <div class="sub-card-left">
+        <div class="sub-name">VIP</div>
+        <div class="sub-tag">Everything included</div>
+        <div style="margin-top:6px"><span class="sub-badge">Best Value</span></div>
+      </div>
+      <div>
+        <div class="sub-price">109 <span>SAR/mo</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="padding: 20px">
+    <button class="btn btn-primary mt-16" onclick="confirmPlan()">Continue</button>
+  </div>
+
+</div>
+<script src="app.js"></script>
+<script>
+  const user = requireAuth();
+  let selected = user?.subscription || null;
+
+  if (selected) {
+    document.getElementById(`card-${selected.toLowerCase()}`).classList.add('selected');
+  }
+
+  function selectPlan(plan) {
+    document.querySelectorAll('.sub-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById(`card-${plan.toLowerCase()}`).classList.add('selected');
+    selected = plan;
+  }
+
+  async function confirmPlan() {
+    const msg = document.getElementById('msg');
+    if (!selected) { showMsg(msg, 'Please select a plan.'); return; }
+    const data = await apiPut(`/user/${user.email}`, { subscription: selected });
+    if (data.error) { showMsg(msg, data.error); return; }
+    setSession(data.user);
+    window.location.href = 'home.html';
+  }
+</script>
+</body>
+</html>

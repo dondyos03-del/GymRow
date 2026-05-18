@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GymRow — My Splits</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .splits-list { display:flex; flex-direction:column; gap:12px; padding:0 20px; }
+    .split-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; transition:border-color 0.2s; }
+    .split-card:hover { border-color:rgba(255,255,255,0.2); }
+    .split-header { display:flex; align-items:center; justify-content:space-between; padding:18px 20px; cursor:pointer; }
+    .split-name { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:3px; }
+    .split-meta { font-size:12px; color:var(--text3); letter-spacing:1px; margin-top:3px; }
+    .split-chevron { font-size:20px; color:var(--text3); transition:transform 0.2s; display:inline-block; }
+    .split-chevron.open { transform:rotate(90deg); }
+    .split-days { border-top:1px solid var(--border); display:none; }
+    .split-days.open { display:block; }
+    .day-row { display:flex; align-items:center; justify-content:space-between; padding:13px 20px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; }
+    .day-row:last-child { border-bottom:none; }
+    .day-row:hover { background:var(--bg3); }
+    .day-label { font-family:'Barlow Condensed',sans-serif; font-size:15px; letter-spacing:2px; text-transform:uppercase; font-weight:600; }
+    .day-ex-count { font-size:12px; color:var(--text3); letter-spacing:1px; }
+
+    #day-view { display:none; }
+
+    .session-timer { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg); margin:12px 20px 16px; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; }
+    .timer-display { font-family:'Bebas Neue',sans-serif; font-size:38px; letter-spacing:4px; line-height:1; }
+    .timer-label { font-family:'Barlow Condensed',sans-serif; font-size:11px; letter-spacing:3px; color:var(--text3); text-transform:uppercase; margin-top:4px; }
+    .timer-btns { display:flex; gap:8px; }
+
+    .ex-block { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg); margin:0 20px 12px; overflow:hidden; }
+    .ex-block-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
+    .ex-block-name { font-family:'Barlow Condensed',sans-serif; font-size:17px; letter-spacing:1px; font-weight:600; }
+
+    /* KPI strip */
+    .kpi-strip { display:grid; grid-template-columns:1fr 1fr 1fr; border-bottom:1px solid var(--border); }
+    .kpi-box { padding:10px 12px; text-align:center; border-right:1px solid var(--border); }
+    .kpi-box:last-child { border-right:none; }
+    .kpi-val { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:2px; line-height:1; }
+    .kpi-val.up { color:#2ecc71; }
+    .kpi-val.down { color:#ff3b3b; }
+    .kpi-val.neutral { color:var(--text2); }
+    .kpi-lbl { font-family:'Barlow Condensed',sans-serif; font-size:9px; letter-spacing:2px; color:var(--text3); text-transform:uppercase; margin-top:3px; }
+
+    /* Mini sparkline */
+    .sparkline-wrap { padding:10px 14px 6px; border-bottom:1px solid var(--border); }
+    .sparkline-label { font-family:'Barlow Condensed',sans-serif; font-size:9px; letter-spacing:2px; color:var(--text3); text-transform:uppercase; margin-bottom:4px; }
+    canvas.sparkline { width:100%; height:40px; display:block; }
+
+    .sets-tbl { width:100%; border-collapse:collapse; }
+    .sets-tbl th { font-family:'Barlow Condensed',sans-serif; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--text3); padding:8px 12px; text-align:left; border-bottom:1px solid var(--border); }
+    .sets-tbl td { padding:8px 12px; border-bottom:1px solid var(--border); vertical-align:middle; font-size:13px; }
+    .sets-tbl tr:last-child td { border-bottom:none; }
+    .set-time { font-size:10px; color:var(--text3); white-space:nowrap; }
+    .del-set-btn { background:transparent; border:none; color:var(--text3); cursor:pointer; font-size:14px; padding:2px 6px; transition:color 0.2s; }
+    .del-set-btn:hover { color:var(--danger); }
+
+    .add-set-row { display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--border); background:var(--bg3); }
+    .add-set-row input { flex:1; background:var(--bg4); border:1px solid var(--border2); border-radius:4px; color:var(--text); font-family:'Barlow',sans-serif; font-size:14px; padding:7px 10px; text-align:center; }
+    .log-set-btn { background:transparent; border:1px solid var(--border2); border-radius:4px; color:var(--text2); font-family:'Barlow Condensed',sans-serif; font-size:11px; letter-spacing:1px; padding:6px 12px; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+    .log-set-btn:hover { border-color:rgba(255,255,255,0.4); color:#fff; }
+
+    .history-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg); margin:0 20px 10px; padding:14px 18px; }
+    .history-date { font-family:'Barlow Condensed',sans-serif; font-size:13px; letter-spacing:2px; color:var(--text3); text-transform:uppercase; margin-bottom:6px; }
+    .history-ex { font-size:13px; color:var(--text2); margin-bottom:3px; }
+
+    /* Rest Timer */
+    .rest-timer-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px; background: var(--bg4); border-top: 1px solid var(--border);
+      gap: 10px;
+    }
+    .rest-countdown {
+      font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px;
+      min-width: 64px; color: #2ecc71; transition: color 0.3s;
+    }
+    .rest-countdown.urgent { color: #ff3b3b; }
+    .rest-progress-track { flex: 1; background: var(--bg3); border-radius: 4px; height: 5px; overflow: hidden; }
+    .rest-progress-fill { height: 100%; background: #2ecc71; border-radius: 4px; transition: width 1s linear, background 0.3s; }
+    .rest-progress-fill.urgent { background: #ff3b3b; }
+    .rest-setting { display: flex; align-items: center; gap: 6px; }
+    .rest-setting input { width: 52px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 4px; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 13px; padding: 4px 6px; text-align: center; }
+    .rest-setting label { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; letter-spacing: 2px; color: var(--text3); text-transform: uppercase; }
+    .rest-start-btn { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 1px; background: transparent; border: 1px solid var(--border2); border-radius: 4px; color: var(--text2); padding: 4px 10px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .rest-start-btn:hover { border-color: #2ecc71; color: #2ecc71; }
+    .rest-done-msg { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 2px; color: #2ecc71; text-transform: uppercase; }
+
+    .kpi-modal-content { max-height:70vh; overflow-y:auto; }
+    .kpi-full-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+    .kpi-full-row:last-child { border-bottom:none; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- SPLITS VIEW -->
+  <div id="splits-view">
+    <div class="top-bar">
+      <a href="home.html" class="back-btn">← Back</a>
+      <div class="top-bar-title">My Splits</div>
+      <button class="btn btn-sm btn-secondary" onclick="openNewSplit()">+ Split</button>
+    </div>
+    <div id="splits-list" class="splits-list mt-16 fade-in"></div>
+  </div>
+
+  <!-- DAY VIEW -->
+  <div id="day-view">
+    <div class="top-bar">
+      <button class="back-btn" onclick="closeDayView()">← Back</button>
+      <div style="text-align:center">
+        <div class="top-bar-title" id="day-view-title">Day</div>
+        <div style="font-size:11px;color:var(--text3);letter-spacing:2px;text-transform:uppercase" id="day-view-split"></div>
+      </div>
+      <button class="btn btn-sm btn-secondary" onclick="openAddExModal()">+ Ex</button>
+    </div>
+
+    <div class="session-timer">
+      <div>
+        <div class="timer-display" id="timer-display">00:00:00</div>
+        <div class="timer-label" id="timer-label">Session not started</div>
+      </div>
+      <div class="timer-btns">
+        <button class="btn btn-sm btn-secondary" id="timer-btn" onclick="toggleTimer()">Start</button>
+        <button class="btn btn-sm btn-danger" id="finish-btn" onclick="finishSession()" style="display:none">Finish</button>
+      </div>
+    </div>
+
+    <div id="exercises-container"></div>
+
+    <div class="section-header mt-8">
+      <span class="section-title">Session History</span>
+    </div>
+    <div id="history-container" style="padding-bottom:30px"></div>
+  </div>
+
+  <!-- NEW SPLIT MODAL -->
+  <div class="modal-overlay" id="new-split-modal">
+    <div class="modal">
+      <div class="modal-title">New Split</div>
+      <div class="form-group">
+        <label>Split Name</label>
+        <input type="text" id="split-name-input" placeholder="e.g. Push Pull Legs" />
+      </div>
+      <div class="form-group">
+        <label>Select Days</label>
+        <div id="days-picker" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+      </div>
+      <div id="split-msg" class="msg" style="display:none;margin:0 0 12px"></div>
+      <div class="flex-row mt-16">
+        <button class="btn btn-secondary" onclick="closeNewSplit()">Cancel</button>
+        <button class="btn btn-primary" onclick="createSplit()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD EXERCISE MODAL -->
+  <div class="modal-overlay" id="add-ex-modal">
+    <div class="modal">
+      <div class="modal-title">Add Exercise</div>
+      <div class="form-group">
+        <label>Exercise Name</label>
+        <input type="text" id="new-ex-name" placeholder="e.g. Bench Press" />
+      </div>
+      <div id="ex-msg" class="msg" style="display:none;margin:0 0 12px"></div>
+      <div class="flex-row">
+        <button class="btn btn-secondary" onclick="closeAddExModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="addExercise()">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI DETAIL MODAL -->
+  <div class="modal-overlay" id="kpi-modal">
+    <div class="modal">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="modal-title" id="kpi-modal-title" style="margin-bottom:0">Progress</div>
+        <button class="btn btn-sm btn-secondary" onclick="closeKpiModal()">Close</button>
+      </div>
+      <div class="kpi-modal-content" id="kpi-modal-body"></div>
+    </div>
+  </div>
+
+</div>
+<script src="app.js"></script>
+<script>
+const user = requireAuth();
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+let userData = null;
+let splits = [];
+let currentSplitIdx = null;
+let currentDayIdx = null;
+let timerInterval = null;
+let sessionStart = null;
+let sessionRunning = false;
+let sessionSeconds = 0;
+const lastUnitByEx = {}; // remembers last used unit per exercise name
+const restDurationByEx = {}; // custom rest duration per exercise (seconds)
+let restTimerInterval = null;
+let restActiveEi = null; // which exercise is resting
+let restRemaining = 0;
+let restTotal = 0;
+
+async function load() {
+  const data = await apiGet(`/user/${user.email}`);
+  if (data.error) return;
+  userData = data.user;
+  splits = userData.splits || [];
+  renderSplits();
+}
+
+// ── KPI CALCULATIONS ──
+// Get all historical max weights per exercise name across all sessions of this day
+function getExerciseKPIs(exName, splitIdx, dayIdx) {
+  const sp = splits[splitIdx];
+  const dayLabel = sp.days[dayIdx];
+  const sessions = (sp.history || []).filter(h => h.dayLabel === dayLabel);
+
+  // Each session's best set weight for this exercise
+  const sessionMaxWeights = sessions
+    .map(h => {
+      const ex = (h.exercises || []).find(e => e.name === exName);
+      if (!ex || !ex.sets || ex.sets.length === 0) return null;
+      const validSets = ex.sets.filter(s => parseFloat(s.weight) > 0);
+      if (validSets.length === 0) return null;
+      const maxSet = validSets.reduce((best, s) => parseFloat(s.weight) > parseFloat(best.weight) ? s : best, validSets[0]);
+      return { weight: parseFloat(maxSet.weight), unit: maxSet.unit || 'kg' };
+    })
+    .filter(v => v !== null);
+
+  // Current session live sets (only non-zero)
+  const currentEx = (sp.dayExercises?.[dayIdx] || []).find(e => e.name === exName);
+  const currentSets = (currentEx?.sets || []).filter(s => parseFloat(s.weight) > 0);
+  const currentMaxWeight = currentSets.length > 0 ? Math.max(...currentSets.map(s => parseFloat(s.weight))) : null;
+  const currentMaxReps = currentSets.length > 0 ? Math.max(...currentSets.map(s => parseFloat(s.reps) || 0)) : null;
+
+  const bestEverObj = sessionMaxWeights.length > 0 ? sessionMaxWeights.reduce((b, s) => s.weight > b.weight ? s : b, sessionMaxWeights[0]) : null;
+  const lastSession = sessionMaxWeights.length > 0 ? sessionMaxWeights[0] : null;
+  const prevSession = sessionMaxWeights.length > 1 ? sessionMaxWeights[1] : null;
+
+  let progression = null;
+  if (lastSession !== null && prevSession !== null && prevSession.weight > 0) {
+    progression = (((lastSession.weight - prevSession.weight) / prevSession.weight) * 100).toFixed(1);
+  }
+
+  return {
+    sessionMaxWeights: sessionMaxWeights.slice().reverse().map(s => s.weight), // for sparkline (numbers only)
+    sessionMaxObjs: sessionMaxWeights.slice().reverse(),
+    bestEver: bestEverObj,
+    lastSession,
+    prevSession,
+    progression,
+    currentMaxWeight,
+    currentMaxReps,
+    totalSessions: sessions.length
+  };
+}
+
+function drawSparkline(canvasId, dataPoints, weightUnit) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || dataPoints.length < 2) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 200;
+  const H = 40;
+  canvas.width = W;
+  canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+
+  const min = Math.min(...dataPoints);
+  const max = Math.max(...dataPoints);
+  const range = max - min || 1;
+
+  const pts = dataPoints.map((v, i) => ({
+    x: (i / (dataPoints.length - 1)) * (W - 10) + 5,
+    y: H - ((v - min) / range) * (H - 10) - 5
+  }));
+
+  // gradient fill
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, 'rgba(255,255,255,0.15)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, H);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length-1].x, H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // line
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = dataPoints[dataPoints.length-1] >= dataPoints[0] ? '#2ecc71' : '#ff3b3b';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // dots
+  pts.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+  });
+}
+
+// ── RENDER SPLITS LIST ──
+function renderSplits() {
+  const list = document.getElementById('splits-list');
+  if (splits.length === 0) {
+    list.innerHTML = `<div class="text-center text-muted" style="padding:40px 20px">No splits yet.<br>Tap <strong>+ Split</strong> to create one.</div>`;
+    return;
+  }
+  list.innerHTML = splits.map((sp, si) => `
+    <div class="split-card">
+      <div class="split-header" onclick="toggleSplit(${si})">
+        <div>
+          <div class="split-name">${sp.name}</div>
+          <div class="split-meta">${sp.days.length} day${sp.days.length!==1?'s':''} · ${sp.days.map(d=>d.slice(0,3)).join(', ')}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteSplit(${si})">Delete</button>
+          <span class="split-chevron" id="chev-${si}">›</span>
+        </div>
+      </div>
+      <div class="split-days" id="days-${si}">
+        ${sp.days.map((day, di) => `
+          <div class="day-row" onclick="openDay(${si},${di})">
+            <div>
+              <div class="day-label">${day}</div>
+              <div class="day-ex-count">${((sp.dayExercises||[])[di]||[]).length} exercise${((sp.dayExercises||[])[di]||[]).length!==1?'s':''}</div>
+            </div>
+            <span style="color:var(--text3)">›</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleSplit(si) {
+  const days = document.getElementById(`days-${si}`);
+  const chev = document.getElementById(`chev-${si}`);
+  const isOpen = days.classList.contains('open');
+  document.querySelectorAll('.split-days').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.split-chevron').forEach(c => c.classList.remove('open'));
+  if (!isOpen) { days.classList.add('open'); chev.classList.add('open'); }
+}
+
+function openDay(si, di) {
+  currentSplitIdx = si;
+  currentDayIdx = di;
+  const sp = splits[si];
+  document.getElementById('day-view-title').textContent = sp.days[di];
+  document.getElementById('day-view-split').textContent = sp.name;
+  document.getElementById('splits-view').style.display = 'none';
+  document.getElementById('day-view').style.display = 'block';
+  resetTimer();
+  renderExercises();
+  renderHistory();
+}
+
+function closeDayView() {
+  document.getElementById('splits-view').style.display = 'block';
+  document.getElementById('day-view').style.display = 'none';
+  resetTimer();
+  renderSplits();
+}
+
+// ── TIMER ──
+function toggleTimer() {
+  if (!sessionRunning) {
+    sessionRunning = true;
+    if (!sessionStart) sessionStart = new Date().toISOString();
+    document.getElementById('timer-btn').textContent = 'Pause';
+    document.getElementById('finish-btn').style.display = 'inline-block';
+    document.getElementById('timer-label').textContent = 'Session running';
+    timerInterval = setInterval(() => {
+      sessionSeconds++;
+      document.getElementById('timer-display').textContent = formatTime(sessionSeconds);
+    }, 1000);
+  } else {
+    sessionRunning = false;
+    clearInterval(timerInterval);
+    document.getElementById('timer-btn').textContent = 'Resume';
+    document.getElementById('timer-label').textContent = 'Session paused';
+  }
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  sessionRunning = false; sessionStart = null; sessionSeconds = 0;
+  document.getElementById('timer-display').textContent = '00:00:00';
+  document.getElementById('timer-label').textContent = 'Session not started';
+  document.getElementById('timer-btn').textContent = 'Start';
+  document.getElementById('finish-btn').style.display = 'none';
+}
+
+function formatTime(secs) {
+  return [Math.floor(secs/3600), Math.floor((secs%3600)/60), secs%60].map(v=>String(v).padStart(2,'0')).join(':');
+}
+
+async function finishSession() {
+  if (!confirm('Finish and save this session?')) return;
+  clearInterval(timerInterval); sessionRunning = false;
+  const sp = splits[currentSplitIdx];
+  const exercises = (sp.dayExercises||[])[currentDayIdx] || [];
+  const endTime = new Date();
+  const sessionEntry = {
+    id: Date.now().toString(),
+    date: endTime.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
+    startTime: sessionStart,
+    endTime: endTime.toISOString(),
+    duration: formatTime(sessionSeconds),
+    dayLabel: sp.days[currentDayIdx],
+    exercises: exercises.map(ex => ({ name: ex.name, sets: [...(ex.sets||[])] }))
+  };
+  if (!sp.history) sp.history = [];
+  sp.history.unshift(sessionEntry);
+  exercises.forEach(ex => { ex.sets = []; });
+  await saveToServer();
+  resetTimer();
+  renderExercises();
+  renderHistory();
+  alert(`Session saved! Duration: ${sessionEntry.duration}`);
+}
+
+// ── EXERCISES ──
+function renderExercises() {
+  const sp = splits[currentSplitIdx];
+  const exercises = (sp.dayExercises||[])[currentDayIdx] || [];
+  const weightUnit = userData?.weightUnit || 'kg';
+  const container = document.getElementById('exercises-container');
+
+  if (exercises.length === 0) {
+    container.innerHTML = `<div class="text-center text-muted" style="padding:24px 20px">No exercises yet. Tap <strong>+ Ex</strong> to add one.</div>`;
+    return;
+  }
+
+  container.innerHTML = exercises.map((ex, ei) => {
+    const kpi = getExerciseKPIs(ex.name, currentSplitIdx, currentDayIdx);
+    const hasHistory = kpi.totalSessions > 0;
+    const progClass = kpi.progression === null ? 'neutral' : parseFloat(kpi.progression) >= 0 ? 'up' : 'down';
+    const progStr = kpi.progression === null ? '—' : `${parseFloat(kpi.progression) > 0 ? '+' : ''}${kpi.progression}%`;
+    const bestStr = kpi.bestEver ? `${kpi.bestEver.weight} ${kpi.bestEver.unit}` : '—';
+    const lastStr = kpi.lastSession ? `${kpi.lastSession.weight} ${kpi.lastSession.unit}` : '—';
+    const showKpi = kpi.totalSessions > 0 && kpi.lastSession !== null;
+
+    return `
+    <div class="ex-block">
+      <div class="ex-block-header">
+        <div class="ex-block-name">${ex.name}</div>
+        <div style="display:flex;gap:8px">
+          ${showKpi ? `<button class="btn btn-sm btn-secondary" onclick="openKpiModal(${ei})">📈 KPI</button>` : ''}
+          <button class="btn btn-sm btn-danger" onclick="deleteExercise(${ei})">Remove</button>
+        </div>
+      </div>
+
+      <!-- KPI STRIP -->
+      ${showKpi ? `
+      <div class="kpi-strip">
+        <div class="kpi-box">
+          <div class="kpi-val ${progClass}">${progStr}</div>
+          <div class="kpi-lbl">vs Last Session</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-val neutral">${bestStr}</div>
+          <div class="kpi-lbl">Best Ever</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-val neutral">${lastStr}</div>
+          <div class="kpi-lbl">Last Session</div>
+        </div>
+      </div>
+      ${kpi.sessionMaxWeights.length >= 2 ? `
+      <div class="sparkline-wrap">
+        <div class="sparkline-label">Weight Progression</div>
+        <canvas class="sparkline" id="spark-${ei}" height="40"></canvas>
+      </div>` : ''}
+      ` : ''}
+
+      <table class="sets-tbl">
+        <thead>
+          <tr><th>#</th><th>Reps</th><th>Weight</th><th>Time</th><th></th></tr>
+        </thead>
+        <tbody>
+          ${(ex.sets||[]).map((s,si) => `
+            <tr>
+              <td style="color:var(--text3);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px">${si+1}</td>
+              <td>${s.reps}</td>
+              <td>${s.weight}<span style="font-size:10px;color:var(--text3);margin-left:2px">${s.unit||weightUnit}</span></td>
+              <td class="set-time">${s.time||''}</td>
+              <td style="display:flex;gap:4px;align-items:center">
+                <button class="del-set-btn" title="Repeat this set" onclick="repeatSet(${ei},${si})" style="color:var(--text3);font-size:13px" onmouseover="this.style.color='#2ecc71'" onmouseout="this.style.color='var(--text3)'">↺</button>
+                <button class="del-set-btn" onclick="deleteSet(${ei},${si})">✕</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div class="add-set-row">
+        <input type="number" id="reps-${ei}" placeholder="Reps" min="0" value="${ex.sets?.length > 0 ? ex.sets[ex.sets.length-1].reps : ''}" />
+        <input type="number" id="wt-${ei}" placeholder="Weight" min="0" step="0.5" value="${ex.sets?.length > 0 ? ex.sets[ex.sets.length-1].weight : ''}" />
+        <select id="wt-unit-${ei}" onchange="lastUnitByEx['${ex.name}']=this.value" style="background:var(--bg4);border:1px solid var(--border2);border-radius:4px;color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;padding:7px 6px;width:58px;outline:none">
+          <option value="kg" ${(lastUnitByEx[ex.name] || ex.sets?.slice(-1)[0]?.unit || weightUnit)==='kg'?'selected':''}>kg</option>
+          <option value="lbs" ${(lastUnitByEx[ex.name] || ex.sets?.slice(-1)[0]?.unit || weightUnit)==='lbs'?'selected':''}>lbs</option>
+        </select>
+        <button class="log-set-btn" onclick="logSet(${ei})">Log Set</button>
+      </div>
+      <!-- REST TIMER -->
+      <div class="rest-timer-bar" id="rest-bar-${ei}">
+        <div class="rest-setting">
+          <label>Rest</label>
+          <input type="number" id="rest-dur-${ei}" value="${restDurationByEx[ex.name] || 90}" min="10" max="600" onchange="restDurationByEx['${ex.name}']=parseInt(this.value)||90" />
+          <label>sec</label>
+        </div>
+        <div class="rest-progress-track" id="rest-track-${ei}" style="display:none">
+          <div class="rest-progress-fill" id="rest-fill-${ei}" style="width:100%"></div>
+        </div>
+        <div class="rest-countdown" id="rest-cd-${ei}" style="display:none">0:00</div>
+        <div class="rest-done-msg" id="rest-done-${ei}" style="display:none">Rest done!</div>
+        <button class="rest-start-btn" id="rest-btn-${ei}" onclick="startRestTimer(${ei})">⏱ Rest</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Draw sparklines after DOM update
+  setTimeout(() => {
+    exercises.forEach((ex, ei) => {
+      const kpi = getExerciseKPIs(ex.name, currentSplitIdx, currentDayIdx);
+      if (kpi.sessionMaxWeights.length >= 2) {
+        drawSparkline(`spark-${ei}`, kpi.sessionMaxWeights, userData?.weightUnit || 'kg');
+      }
+    });
+  }, 50);
+}
+
+// ── KPI DETAIL MODAL ──
+function openKpiModal(ei) {
+  const sp = splits[currentSplitIdx];
+  const ex = (sp.dayExercises||[])[currentDayIdx][ei];
+  const kpi = getExerciseKPIs(ex.name, currentSplitIdx, currentDayIdx);
+  const weightUnit = userData?.weightUnit || 'kg';
+  const dayLabel = sp.days[currentDayIdx];
+  const sessions = (sp.history||[]).filter(h => h.dayLabel === dayLabel);
+
+  document.getElementById('kpi-modal-title').textContent = ex.name;
+
+  const progColor = kpi.progression === null ? '' : parseFloat(kpi.progression) >= 0 ? 'color:#2ecc71' : 'color:#ff3b3b';
+  const progDisplay = kpi.progression !== null ? (parseFloat(kpi.progression) > 0 ? '+' : '') + kpi.progression + '%' : '—';
+  const bestEverDisplay = kpi.bestEver ? `${kpi.bestEver.weight} <span style="font-size:14px;color:var(--text3)">${kpi.bestEver.unit}</span>` : '—';
+  const lastSessionDisplay = kpi.lastSession ? `${kpi.lastSession.weight} <span style="font-size:14px;color:var(--text3)">${kpi.lastSession.unit}</span>` : '—';
+
+  document.getElementById('kpi-modal-body').innerHTML = `
+    <!-- Summary KPIs -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;${progColor}">${progDisplay}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:3px">Weight Change</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px">${bestEverDisplay}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:3px">Best Ever</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px">${lastSessionDisplay}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:3px">Last Session</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px">${kpi.totalSessions}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:3px">Total Sessions</div>
+      </div>
+    </div>
+
+    <!-- Sparkline full -->
+    ${kpi.sessionMaxWeights.length >= 2 ? `
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">Max Weight Per Session (${weightUnit})</div>
+      <canvas id="kpi-spark-full" height="60" style="width:100%;display:block"></canvas>
+    </div>` : ''}
+
+    <!-- Per-session breakdown -->
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">Session Breakdown</div>
+    ${sessions.map(h => {
+      const exH = (h.exercises||[]).find(e => e.name === ex.name);
+      const sets = exH?.sets || [];
+      const validSets = sets.filter(s => parseFloat(s.weight) > 0);
+      const maxSet = validSets.length > 0 ? validSets.reduce((b,s) => parseFloat(s.weight) > parseFloat(b.weight) ? s : b, validSets[0]) : null;
+      return `
+        <div class="kpi-full-row">
+          <div>
+            <div style="font-size:13px;font-weight:500">${h.date}</div>
+            <div style="font-size:11px;color:var(--text3)">${sets.length} sets · ${h.duration}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px">${maxSet ? maxSet.weight + ' ' + (maxSet.unit||'kg') : '—'}</div>
+            <div style="font-size:10px;color:var(--text3)">${sets.map(s=>`${s.reps}×${s.weight}${s.unit||''}`).join(', ') || 'no sets'}</div>
+          </div>
+        </div>`;
+    }).join('')}
+  `;
+  document.getElementById('kpi-modal').classList.add('active');
+
+  setTimeout(() => {
+    if (kpi.sessionMaxWeights.length >= 2) {
+      const c = document.getElementById('kpi-spark-full');
+      if (c) { c.width = c.offsetWidth; c.height = 60; drawSparkline('kpi-spark-full', kpi.sessionMaxWeights, weightUnit); }
+    }
+  }, 50);
+}
+
+function closeKpiModal() {
+  document.getElementById('kpi-modal').classList.remove('active');
+}
+
+async function logSet(ei) {
+  const sp = splits[currentSplitIdx];
+  const ex = sp.dayExercises[currentDayIdx][ei];
+  const reps = parseFloat(document.getElementById(`reps-${ei}`).value) || 0;
+  const weight = parseFloat(document.getElementById(`wt-${ei}`).value) || 0;
+  const unit = document.getElementById(`wt-unit-${ei}`)?.value || userData?.weightUnit || 'kg';
+  const time = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
+  lastUnitByEx[ex.name] = unit;
+  if (!ex.sets) ex.sets = [];
+  ex.sets.push({ reps, weight, unit, time });
+  await saveToServer();
+  renderExercises();
+  // Auto-start rest timer after logging a set
+  startRestTimer(ei);
+}
+
+// ── REST TIMER ──
+function startRestTimer(ei) {
+  const sp = splits[currentSplitIdx];
+  const ex = (sp.dayExercises||[])[currentDayIdx]?.[ei];
+  const exName = ex?.name || '';
+  const durInput = document.getElementById(`rest-dur-${ei}`);
+  const dur = parseInt(durInput?.value) || restDurationByEx[exName] || 90;
+  restDurationByEx[exName] = dur;
+
+  // Stop any existing rest timer
+  if (restTimerInterval) clearInterval(restTimerInterval);
+
+  // Hide previous active timer if different exercise
+  if (restActiveEi !== null && restActiveEi !== ei) resetRestUI(restActiveEi);
+
+  restActiveEi = ei;
+  restTotal = dur;
+  restRemaining = dur;
+
+  updateRestUI(ei, restRemaining, restTotal);
+
+  restTimerInterval = setInterval(() => {
+    restRemaining--;
+    if (restRemaining <= 0) {
+      clearInterval(restTimerInterval);
+      restTimerInterval = null;
+      showRestDone(ei);
+      // Beep
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [0, 0.15, 0.3].forEach(delay => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.frequency.value = 880;
+          g.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.2);
+          o.start(ctx.currentTime + delay);
+          o.stop(ctx.currentTime + delay + 0.2);
+        });
+      } catch(e) {}
+    } else {
+      updateRestUI(ei, restRemaining, restTotal);
+    }
+  }, 1000);
+}
+
+function updateRestUI(ei, remaining, total) {
+  const cd = document.getElementById(`rest-cd-${ei}`);
+  const fill = document.getElementById(`rest-fill-${ei}`);
+  const track = document.getElementById(`rest-track-${ei}`);
+  const done = document.getElementById(`rest-done-${ei}`);
+  const btn = document.getElementById(`rest-btn-${ei}`);
+  if (!cd) return;
+
+  const mins = Math.floor(remaining / 60);
+  const secs = String(remaining % 60).padStart(2, '0');
+  const pct = (remaining / total) * 100;
+  const urgent = remaining <= 10;
+
+  cd.textContent = `${mins}:${secs}`;
+  cd.className = `rest-countdown${urgent ? ' urgent' : ''}`;
+  cd.style.display = 'block';
+  fill.style.width = pct + '%';
+  fill.className = `rest-progress-fill${urgent ? ' urgent' : ''}`;
+  track.style.display = 'block';
+  done.style.display = 'none';
+  btn.textContent = '⏹ Stop';
+  btn.onclick = () => stopRestTimer(ei);
+}
+
+function showRestDone(ei) {
+  const cd = document.getElementById(`rest-cd-${ei}`);
+  const track = document.getElementById(`rest-track-${ei}`);
+  const done = document.getElementById(`rest-done-${ei}`);
+  const btn = document.getElementById(`rest-btn-${ei}`);
+  if (!cd) return;
+  cd.style.display = 'none';
+  track.style.display = 'none';
+  done.style.display = 'block';
+  btn.textContent = '⏱ Rest';
+  btn.onclick = () => startRestTimer(ei);
+  setTimeout(() => { if (done) done.style.display = 'none'; }, 3000);
+}
+
+function stopRestTimer(ei) {
+  if (restTimerInterval) { clearInterval(restTimerInterval); restTimerInterval = null; }
+  resetRestUI(ei);
+  restActiveEi = null;
+}
+
+function resetRestUI(ei) {
+  const cd = document.getElementById(`rest-cd-${ei}`);
+  const track = document.getElementById(`rest-track-${ei}`);
+  const done = document.getElementById(`rest-done-${ei}`);
+  const btn = document.getElementById(`rest-btn-${ei}`);
+  if (!cd) return;
+  cd.style.display = 'none';
+  track.style.display = 'none';
+  done.style.display = 'none';
+  if (btn) { btn.textContent = '⏱ Rest'; btn.onclick = () => startRestTimer(ei); }
+}
+
+async function repeatSet(ei, si) {
+  const sp = splits[currentSplitIdx];
+  const ex = sp.dayExercises[currentDayIdx][ei];
+  const original = ex.sets[si];
+  const time = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
+  ex.sets.push({ reps: original.reps, weight: original.weight, unit: original.unit, time });
+  lastUnitByEx[ex.name] = original.unit;
+  await saveToServer();
+  renderExercises();
+  startRestTimer(ei);
+}
+
+async function deleteSet(ei, si) {
+  splits[currentSplitIdx].dayExercises[currentDayIdx][ei].sets.splice(si, 1);
+  await saveToServer();
+  renderExercises();
+}
+
+async function deleteExercise(ei) {
+  if (!confirm('Remove this exercise?')) return;
+  splits[currentSplitIdx].dayExercises[currentDayIdx].splice(ei, 1);
+  await saveToServer();
+  renderExercises();
+}
+
+// ── HISTORY ──
+function renderHistory() {
+  const sp = splits[currentSplitIdx];
+  const dayLabel = sp.days[currentDayIdx];
+  const history = (sp.history||[]).filter(h => h.dayLabel === dayLabel);
+  const container = document.getElementById('history-container');
+  if (history.length === 0) {
+    container.innerHTML = `<div class="text-center text-muted" style="padding:16px 20px 24px">No sessions recorded yet.</div>`;
+    return;
+  }
+  container.innerHTML = history.map(h => `
+    <div class="history-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+        <div class="history-date" style="margin-bottom:0">
+          ${h.date} · ${h.duration} ·
+          ${new Date(h.startTime).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})} →
+          ${new Date(h.endTime).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}
+        </div>
+        <button onclick="deleteSession('${h.id}')"
+          style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 0 0 10px;flex-shrink:0;transition:color 0.2s"
+          onmouseover="this.style.color='#ff3b3b'" onmouseout="this.style.color='var(--text3)'">✕</button>
+      </div>
+      ${h.exercises.map(ex => `
+        <div class="history-ex">
+          <strong>${ex.name}</strong>
+          <span style="color:var(--text3)"> — ${ex.sets.length > 0 ? ex.sets.map(s=>`${s.reps}×${s.weight}`).join(', ') : 'no sets'}</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+async function deleteSession(sessionId) {
+  if (!confirm('Delete this session?')) return;
+  const sp = splits[currentSplitIdx];
+  sp.history = (sp.history||[]).filter(h => h.id !== sessionId);
+  await saveToServer();
+  renderHistory();
+  renderExercises();
+}
+
+// ── MODALS ──
+function openAddExModal() {
+  document.getElementById('new-ex-name').value = '';
+  document.getElementById('ex-msg').style.display = 'none';
+  document.getElementById('add-ex-modal').classList.add('active');
+}
+function closeAddExModal() { document.getElementById('add-ex-modal').classList.remove('active'); }
+
+async function addExercise() {
+  const name = document.getElementById('new-ex-name').value.trim();
+  const msg = document.getElementById('ex-msg');
+  if (!name) { showMsg(msg, 'Enter an exercise name.'); return; }
+  const sp = splits[currentSplitIdx];
+  if (!sp.dayExercises) sp.dayExercises = sp.days.map(() => []);
+  sp.dayExercises[currentDayIdx].push({ name, sets: [] });
+  await saveToServer();
+  closeAddExModal();
+  renderExercises();
+}
+
+function openNewSplit() {
+  document.getElementById('split-name-input').value = '';
+  document.getElementById('split-msg').style.display = 'none';
+  document.getElementById('days-picker').innerHTML = DAYS.map(d => `
+    <button type="button" onclick="toggleDay(this)" data-day="${d}" data-active="false"
+      style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);
+             font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;padding:7px 14px;
+             cursor:pointer;text-transform:uppercase;transition:all 0.15s">${d.slice(0,3)}</button>
+  `).join('');
+  document.getElementById('new-split-modal').classList.add('active');
+}
+
+function toggleDay(btn) {
+  const active = btn.getAttribute('data-active') === 'true';
+  btn.setAttribute('data-active', String(!active));
+  btn.style.background = !active ? 'rgba(255,255,255,0.15)' : 'var(--bg3)';
+  btn.style.borderColor = !active ? 'rgba(255,255,255,0.5)' : 'var(--border2)';
+  btn.style.color = !active ? '#fff' : 'var(--text2)';
+}
+
+function closeNewSplit() { document.getElementById('new-split-modal').classList.remove('active'); }
+
+async function createSplit() {
+  const name = document.getElementById('split-name-input').value.trim();
+  const msg = document.getElementById('split-msg');
+  const sorted = DAYS.filter(d => document.querySelector(`#days-picker button[data-day="${d}"][data-active="true"]`));
+  if (!name) { showMsg(msg, 'Enter a split name.'); return; }
+  if (sorted.length === 0) { showMsg(msg, 'Select at least one day.'); return; }
+  splits.push({ id: Date.now().toString(), name, days: sorted, dayExercises: sorted.map(()=>[]), history: [] });
+  await saveToServer();
+  closeNewSplit();
+  renderSplits();
+}
+
+async function deleteSplit(si) {
+  if (!confirm(`Delete "${splits[si].name}"?`)) return;
+  splits.splice(si, 1);
+  await saveToServer();
+  renderSplits();
+}
+
+async function saveToServer() {
+  const data = await apiPut(`/user/${user.email}`, { splits });
+  if (data.user) { userData = data.user; setSession(data.user); }
+}
+
+load();
+</script>
+</body>
+</html>
