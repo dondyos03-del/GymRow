@@ -125,7 +125,10 @@
 
     <!-- MY EXERCISES PANEL -->
     <div id="panel-myex" style="display:none;padding:16px 20px 30px">
-      <p style="font-size:12px;color:var(--text3);margin-bottom:14px;letter-spacing:0.5px">Exercises you've logged across all splits — sorted by performance.</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <p style="font-size:12px;color:var(--text3);letter-spacing:0.5px;margin:0">Your personal exercise list</p>
+        <button class="btn btn-sm btn-secondary" onclick="openAddMyEx()">+ Add</button>
+      </div>
       <div id="myex-list"></div>
     </div>
 
@@ -204,6 +207,77 @@
 
       <div style="margin-top:16px">
         <button class="btn btn-danger" id="sd-delete-btn">Delete Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD MY EXERCISE MODAL -->
+  <div class="modal-overlay" id="add-myex-modal">
+    <div class="modal" style="max-height:85vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="modal-title" style="margin-bottom:0">Add Exercise</div>
+        <button class="btn btn-sm btn-secondary" onclick="closeAddMyEx()">Close</button>
+      </div>
+      <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:14px">
+        <div id="myex-tab-lib" onclick="switchMyExTab('lib')"
+          style="flex:1;text-align:center;padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid #fff;color:#fff">
+          Library
+        </div>
+        <div id="myex-tab-manual" onclick="switchMyExTab('manual')"
+          style="flex:1;text-align:center;padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3)">
+          Manual
+        </div>
+      </div>
+      <div id="myex-panel-lib">
+        <input type="text" id="myex-lib-search" placeholder="Search exercises..." oninput="filterMyExLib()" style="margin-bottom:10px" />
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="myex-lib-cats"></div>
+        <div id="myex-lib-list" style="max-height:300px;overflow-y:auto"></div>
+      </div>
+      <div id="myex-panel-manual" style="display:none">
+        <div class="form-group">
+          <label>Exercise Name</label>
+          <input type="text" id="myex-manual-name" placeholder="e.g. Bench Press" />
+        </div>
+        <div id="myex-manual-msg" class="msg" style="display:none;margin:0 0 12px"></div>
+        <button class="btn btn-primary" onclick="addMyExManual()">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MY EXERCISE DETAIL MODAL -->
+  <div class="modal-overlay" id="myex-detail-modal">
+    <div class="modal" style="max-height:85vh;overflow-y:auto">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
+        <div class="modal-title" id="myexd-name" style="margin-bottom:0"></div>
+        <button class="btn btn-sm btn-secondary" onclick="closeMyExDetail()">Close</button>
+      </div>
+
+      <!-- Target sets/reps -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">Targets</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label>Target Sets</label>
+            <input type="number" id="myexd-sets" placeholder="e.g. 4" min="1" />
+          </div>
+          <div>
+            <label>Target Reps</label>
+            <input type="number" id="myexd-reps" placeholder="e.g. 8" min="1" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Notes</label>
+          <input type="text" id="myexd-notes" placeholder="e.g. Focus on mind-muscle connection" />
+        </div>
+        <button class="btn btn-primary btn-sm" style="width:auto;padding:8px 20px" onclick="saveMyExDetail()">Save</button>
+      </div>
+
+      <!-- Performance history -->
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">Performance History</div>
+      <div id="myexd-history"></div>
+
+      <div style="margin-top:16px">
+        <button class="btn btn-danger" onclick="removeMyEx()">Remove Exercise</button>
       </div>
     </div>
   </div>
@@ -1128,100 +1202,248 @@ function switchMainTab(tab) {
 }
 
 // ── MY EXERCISES ──
-function renderMyExercises() {
-  const list = document.getElementById('myex-list');
+let myExCurrentName = null;
+let myExLibCat = 'All';
+
+function getMyExercises() {
+  return userData?.myExercises || [];
+}
+
+function getSessionHistory(exName) {
   const weightUnit = userData?.weightUnit || 'kg';
-
-  // Collect all exercise performance data across all splits and sessions
-  const exMap = {}; // name -> { sessions: [], bestWeight, totalSets, totalVolume }
-
+  const history = [];
   splits.forEach(sp => {
-    (sp.history || []).forEach(session => {
-      session.exercises.forEach(ex => {
-        const validSets = (ex.sets || []).filter(s => parseFloat(s.weight) > 0 || parseFloat(s.reps) > 0);
-        if (validSets.length === 0) return;
-        if (!exMap[ex.name]) exMap[ex.name] = { name: ex.name, sessions: [], allSets: [] };
-        const maxSet = validSets.filter(s => parseFloat(s.weight) > 0)
-          .reduce((b, s) => parseFloat(s.weight) > parseFloat(b.weight||0) ? s : b, { weight: 0 });
-        exMap[ex.name].sessions.push({
-          date: session.date,
-          splitName: sp.name,
-          dayLabel: session.dayLabel,
-          sets: validSets,
-          maxWeight: parseFloat(maxSet.weight) || 0,
-          maxUnit: maxSet.unit || weightUnit
-        });
-        exMap[ex.name].allSets.push(...validSets);
+    (sp.history||[]).forEach(session => {
+      const ex = session.exercises.find(e => e.name === exName);
+      if (!ex) return;
+      const validSets = (ex.sets||[]).filter(s => parseFloat(s.reps)>0 || parseFloat(s.weight)>0);
+      if (!validSets.length) return;
+      const maxSet = validSets.filter(s=>parseFloat(s.weight)>0)
+        .reduce((b,s)=>parseFloat(s.weight)>parseFloat(b.weight||0)?s:b, {weight:0,unit:weightUnit});
+      history.push({
+        date: session.date, splitName: sp.name, dayLabel: session.dayLabel,
+        sets: validSets, maxWeight: parseFloat(maxSet.weight)||0, maxUnit: maxSet.unit||weightUnit
       });
     });
   });
+  return history;
+}
 
-  const exercises = Object.values(exMap);
+function renderMyExercises() {
+  const list = document.getElementById('myex-list');
+  const myExs = getMyExercises();
+  const weightUnit = userData?.weightUnit || 'kg';
 
-  if (exercises.length === 0) {
-    list.innerHTML = `<div class="text-center text-muted" style="padding:40px 0">No exercise data yet.<br>Complete a session to see your performance here.</div>`;
+  if (myExs.length === 0) {
+    list.innerHTML = `<div class="text-center text-muted" style="padding:40px 0">No exercises yet.<br>Tap <strong>+ Add</strong> to build your list.</div>`;
     return;
   }
 
-  // Sort by most sessions
-  exercises.sort((a, b) => b.sessions.length - a.sessions.length);
-
-  list.innerHTML = exercises.map(ex => {
-    const allWeights = ex.sessions.map(s => s.maxWeight).filter(w => w > 0);
+  list.innerHTML = myExs.map(ex => {
+    const history = getSessionHistory(ex.name);
+    const allWeights = history.map(s=>s.maxWeight).filter(w=>w>0);
     const bestWeight = allWeights.length > 0 ? Math.max(...allWeights) : 0;
-    const bestSession = ex.sessions.find(s => s.maxWeight === bestWeight);
-    const totalSets = ex.allSets.length;
-    const totalVol = ex.allSets.reduce((s, set) => s + (parseFloat(set.reps)||0) * (parseFloat(set.weight)||0), 0);
-    const lastSession = ex.sessions[ex.sessions.length - 1];
-    const prevSession = ex.sessions.length > 1 ? ex.sessions[ex.sessions.length - 2] : null;
+    const lastSession = history[history.length-1];
+    const prevSession = history.length > 1 ? history[history.length-2] : null;
     let trend = null;
     if (lastSession && prevSession && prevSession.maxWeight > 0) {
       trend = (((lastSession.maxWeight - prevSession.maxWeight) / prevSession.maxWeight) * 100).toFixed(1);
     }
+    const totalSets = history.reduce((s,h)=>s+h.sets.length, 0);
 
     return `
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div onclick="openMyExDetail('${ex.name.replace(/'/g,"\\'")}')"
+        style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s"
+        onmouseover="this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
           <div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;letter-spacing:1px;font-weight:600">${ex.name}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">${ex.sessions.length} session${ex.sessions.length!==1?'s':''} · ${totalSets} total sets</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">${history.length} session${history.length!==1?'s':''} · ${totalSets} sets total</div>
           </div>
-          ${trend !== null ? `
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:1px;color:${parseFloat(trend)>=0?'#2ecc71':'#ff3b3b'}">
-              ${parseFloat(trend)>=0?'↑':'↓'} ${Math.abs(trend)}%
-            </div>` : ''}
+          ${trend !== null ? `<div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:1px;color:${parseFloat(trend)>=0?'#2ecc71':'#ff3b3b'}">${parseFloat(trend)>=0?'↑':'↓'} ${Math.abs(trend)}%</div>` : ''}
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px">${bestWeight > 0 ? bestWeight + ' ' + (bestSession?.maxUnit||weightUnit) : '—'}</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Best Weight</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:${ex.notes?'8px':'0'}">
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px">${bestWeight>0?bestWeight+' '+(lastSession?.maxUnit||weightUnit):'—'}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:8px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Best</div>
           </div>
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px">${lastSession?.maxWeight > 0 ? lastSession.maxWeight + ' ' + (lastSession.maxUnit||weightUnit) : '—'}</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Last Session</div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px">${ex.targetSets||'—'} × ${ex.targetReps||'—'}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:8px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Target</div>
           </div>
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px">${totalVol > 0 ? Math.round(totalVol) : '—'}</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Total Volume</div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px">${lastSession?.maxWeight>0?lastSession.maxWeight+' '+(lastSession.maxUnit||weightUnit):'—'}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:8px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Last</div>
           </div>
         </div>
-        <!-- Session history for this exercise -->
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:6px">History</div>
-        ${ex.sessions.slice().reverse().slice(0,5).map(s => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-            <div>
-              <span style="color:var(--text2)">${s.date}</span>
-              <span style="color:var(--text3);margin-left:6px">${s.splitName} · ${s.dayLabel}</span>
-            </div>
-            <div style="color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:1px">
-              ${s.sets.map(set=>`${set.reps}×${set.weight}${set.unit||weightUnit}`).join(', ')}
-            </div>
-          </div>
-        `).join('')}
-        ${ex.sessions.length > 5 ? `<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center">+${ex.sessions.length-5} more sessions</div>` : ''}
+        ${ex.notes ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;font-style:italic">📝 ${ex.notes}</div>` : ''}
       </div>
     `;
   }).join('');
+}
+
+function openMyExDetail(name) {
+  myExCurrentName = name;
+  const myExs = getMyExercises();
+  const ex = myExs.find(e=>e.name===name);
+  if (!ex) return;
+  const weightUnit = userData?.weightUnit || 'kg';
+
+  document.getElementById('myexd-name').textContent = name;
+  document.getElementById('myexd-sets').value = ex.targetSets || '';
+  document.getElementById('myexd-reps').value = ex.targetReps || '';
+  document.getElementById('myexd-notes').value = ex.notes || '';
+
+  // Performance history
+  const history = getSessionHistory(name);
+  const histEl = document.getElementById('myexd-history');
+  if (history.length === 0) {
+    histEl.innerHTML = `<div class="text-center text-muted" style="padding:16px 0">No sessions recorded yet.</div>`;
+  } else {
+    const allWeights = history.map(s=>s.maxWeight).filter(w=>w>0);
+    const bestWeight = allWeights.length > 0 ? Math.max(...allWeights) : 0;
+    const totalVol = history.reduce((s,h)=>s+h.sets.reduce((ss,set)=>(parseFloat(set.reps)||0)*(parseFloat(set.weight)||0)+ss,0),0);
+
+    histEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px">${bestWeight>0?bestWeight+' '+weightUnit:'—'}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:8px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Best Weight</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px">${history.length}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:8px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Sessions</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px">${totalVol>0?Math.round(totalVol):'—'}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:8px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Volume</div>
+        </div>
+      </div>
+      ${history.slice().reverse().map(h=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <div>
+            <span style="color:var(--text2)">${h.date}</span>
+            <span style="color:var(--text3);margin-left:6px">${h.splitName} · ${h.dayLabel}</span>
+          </div>
+          <div style="color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:1px">
+            ${h.sets.map(s=>`${s.reps}×${s.weight}${s.unit||weightUnit}`).join(', ')}
+          </div>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  document.getElementById('myex-detail-modal').classList.add('active');
+}
+
+function closeMyExDetail() { document.getElementById('myex-detail-modal').classList.remove('active'); }
+
+async function saveMyExDetail() {
+  const myExs = getMyExercises();
+  const idx = myExs.findIndex(e=>e.name===myExCurrentName);
+  if (idx === -1) return;
+  myExs[idx].targetSets = parseInt(document.getElementById('myexd-sets').value) || null;
+  myExs[idx].targetReps = parseInt(document.getElementById('myexd-reps').value) || null;
+  myExs[idx].notes = document.getElementById('myexd-notes').value.trim() || null;
+  await saveMyExToServer(myExs);
+  closeMyExDetail();
+  renderMyExercises();
+}
+
+async function removeMyEx() {
+  if (!confirm(`Remove ${myExCurrentName} from your list?`)) return;
+  const myExs = getMyExercises().filter(e=>e.name!==myExCurrentName);
+  await saveMyExToServer(myExs);
+  closeMyExDetail();
+  renderMyExercises();
+}
+
+async function saveMyExToServer(myExs) {
+  const data = await apiPut(`/user/${user.email}`, { myExercises: myExs });
+  if (data.user) { userData = data.user; setSession(data.user); }
+}
+
+// Add My Exercise modal
+let myExLibCatActive = 'All';
+
+function openAddMyEx() {
+  document.getElementById('myex-manual-name').value = '';
+  document.getElementById('myex-manual-msg').style.display = 'none';
+  myExLibCatActive = 'All';
+  renderMyExLibCats();
+  filterMyExLib();
+  document.getElementById('add-myex-modal').classList.add('active');
+}
+
+function closeAddMyEx() { document.getElementById('add-myex-modal').classList.remove('active'); }
+
+function switchMyExTab(tab) {
+  document.getElementById('myex-panel-lib').style.display = tab==='lib'?'block':'none';
+  document.getElementById('myex-panel-manual').style.display = tab==='manual'?'block':'none';
+  document.getElementById('myex-tab-lib').style.borderBottomColor = tab==='lib'?'#fff':'transparent';
+  document.getElementById('myex-tab-lib').style.color = tab==='lib'?'#fff':'var(--text3)';
+  document.getElementById('myex-tab-manual').style.borderBottomColor = tab==='manual'?'#fff':'transparent';
+  document.getElementById('myex-tab-manual').style.color = tab==='manual'?'#fff':'var(--text3)';
+}
+
+function renderMyExLibCats() {
+  const cats = ['All', ...ALL_CATEGORIES];
+  document.getElementById('myex-lib-cats').innerHTML = cats.map(c=>`
+    <button onclick="setMyExCat('${c}')" style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:20px;border:1px solid ${myExLibCatActive===c?'rgba(255,255,255,0.5)':'var(--border2)'};background:${myExLibCatActive===c?'rgba(255,255,255,0.1)':'transparent'};color:${myExLibCatActive===c?'#fff':'var(--text3)'};cursor:pointer;transition:all 0.2s">${c}</button>
+  `).join('');
+}
+
+function setMyExCat(cat) { myExLibCatActive=cat; renderMyExLibCats(); filterMyExLib(); }
+
+function filterMyExLib() {
+  const q = (document.getElementById('myex-lib-search')?.value||'').toLowerCase();
+  let items = EXERCISE_LIBRARY;
+  if (myExLibCatActive!=='All') items = items.filter(e=>e.category===myExLibCatActive);
+  if (q) items = items.filter(e=>e.name.toLowerCase().includes(q)||e.muscle.toLowerCase().includes(q));
+  const list = document.getElementById('myex-lib-list');
+  if (!list) return;
+  if (items.length===0) { list.innerHTML=`<div class="text-center text-muted" style="padding:16px 0">No exercises found.</div>`; return; }
+  const myExNames = getMyExercises().map(e=>e.name);
+  const grouped={};
+  items.forEach(e=>{if(!grouped[e.category])grouped[e.category]=[];grouped[e.category].push(e);});
+  list.innerHTML = Object.entries(grouped).map(([cat,exs])=>`
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;padding:8px 0 4px">${cat}</div>
+    ${exs.map(ex=>{
+      const added = myExNames.includes(ex.name);
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+          <div style="pointer-events:none">
+            <div style="font-size:14px;font-weight:500;color:${added?'var(--text3)':'var(--text)'}">${ex.name}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">${ex.muscle} · ${ex.equipment}</div>
+          </div>
+          ${added
+            ? `<span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--text3);letter-spacing:1px">Added</span>`
+            : `<button onclick="addMyExFromLib('${ex.name.replace(/'/g,"\\'")}','${ex.muscle}','${ex.equipment}')" style="background:transparent;border:1px solid var(--border2);border-radius:4px;color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;padding:4px 10px;cursor:pointer;white-space:nowrap;transition:all 0.2s" onmouseover="this.style.borderColor='#2ecc71';this.style.color='#2ecc71'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">+ Add</button>`
+          }
+        </div>`;
+    }).join('')}
+  `).join('');
+}
+
+async function addMyExFromLib(name, muscle, equipment) {
+  const myExs = getMyExercises();
+  if (myExs.find(e=>e.name===name)) return;
+  myExs.push({ name, muscle, equipment, targetSets:null, targetReps:null, notes:null });
+  await saveMyExToServer(myExs);
+  filterMyExLib(); // refresh to show "Added"
+  renderMyExercises();
+}
+
+async function addMyExManual() {
+  const name = document.getElementById('myex-manual-name').value.trim();
+  const msg = document.getElementById('myex-manual-msg');
+  if (!name) { showMsg(msg, 'Enter an exercise name.'); return; }
+  const myExs = getMyExercises();
+  if (myExs.find(e=>e.name===name)) { showMsg(msg, 'Already in your list.'); return; }
+  myExs.push({ name, muscle:null, equipment:null, targetSets:null, targetReps:null, notes:null });
+  await saveMyExToServer(myExs);
+  closeAddMyEx();
+  renderMyExercises();
 }
 
 function renderMainLibraryCats() {

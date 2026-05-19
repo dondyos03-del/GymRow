@@ -52,7 +52,9 @@ app.post('/api/signup', (req, res) => {
     weightUnit: 'kg',
     gym: null,
     subscription: null,
+    goal: null,
     splits: [],
+    myExercises: [],
     nutrition: []
   };
   db.users.push(newUser);
