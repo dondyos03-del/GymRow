@@ -12,67 +12,88 @@
       background: var(--bg2); border: 1px solid var(--border2);
       border-radius: 20px; padding: 6px 14px 6px 8px;
       font-family: 'Barlow Condensed', sans-serif; font-size: 12px;
-      letter-spacing: 1px; color: var(--text2);
+      letter-spacing: 1px; color: var(--text2); cursor: pointer;
+      transition: border-color 0.2s;
     }
-    .device-dot {
-      width: 7px; height: 7px; border-radius: 50%; background: #2ecc71;
-      box-shadow: 0 0 6px #2ecc71; animation: pulse-dot 2s infinite;
-    }
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
-    }
+    .device-badge:hover { border-color: rgba(255,255,255,0.3); }
+    .device-dot { width: 7px; height: 7px; border-radius: 50%; background: #2ecc71; box-shadow: 0 0 6px #2ecc71; animation: pulse-dot 2s infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-    /* Recovery ring */
-    .recovery-ring-wrap {
-      display: flex; flex-direction: column; align-items: center;
-      padding: 20px 0 8px;
+    /* Connect screen */
+    #connect-screen { padding: 0 20px; }
+    .connect-hero { text-align: center; padding: 40px 0 32px; }
+    .connect-hero-icon { font-size: 56px; margin-bottom: 16px; }
+    .connect-hero-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 4px; }
+    .connect-hero-sub { font-size: 13px; color: var(--text3); margin-top: 8px; letter-spacing: 1px; }
+
+    .device-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+    .device-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 20px 16px;
+      cursor: pointer; transition: all 0.2s; text-align: center;
     }
+    .device-card:hover { border-color: rgba(255,255,255,0.3); background: var(--bg3); transform: translateY(-2px); }
+    .device-card.selected { border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.06); }
+    .device-emoji { font-size: 28px; margin-bottom: 10px; }
+    .device-card-name { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; letter-spacing: 1px; font-weight: 600; }
+    .device-card-tag { font-size: 10px; color: var(--text3); letter-spacing: 1px; margin-top: 3px; }
+    .device-features { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-top: 8px; }
+    .device-feat { font-family: 'Barlow Condensed', sans-serif; font-size: 9px; letter-spacing: 1px; padding: 2px 6px; border-radius: 10px; background: var(--bg4); color: var(--text3); border: 1px solid var(--border); }
+    .device-feat.has { color: #2ecc71; border-color: rgba(46,204,113,0.3); background: rgba(46,204,113,0.05); }
+
+    /* Connecting animation */
+    #connecting-screen { display:none; text-align:center; padding: 80px 20px; }
+    .connecting-spinner { width: 60px; height: 60px; border: 3px solid var(--border2); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .connecting-label { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 4px; }
+    .connecting-sub { font-size: 12px; color: var(--text3); letter-spacing: 2px; margin-top: 8px; text-transform: uppercase; }
+
+    /* Data screen */
+    #data-screen { display: none; }
+    .recovery-ring-wrap { display:flex; flex-direction:column; align-items:center; padding:20px 0 8px; }
     .ring-svg { transform: rotate(-90deg); }
-    .ring-bg { fill: none; stroke: var(--bg4); stroke-width: 10; }
-    .ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
-    .ring-center {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      text-align: center;
-    }
-    .ring-wrap { position: relative; width: 140px; height: 140px; }
-    .ring-score { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 2px; line-height: 1; }
-    .ring-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--text3); text-transform: uppercase; }
+    .ring-bg { fill:none; stroke:var(--bg4); stroke-width:10; }
+    .ring-fill { fill:none; stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset 1s ease; }
+    .ring-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
+    .ring-wrap { position:relative; width:140px; height:140px; }
+    .ring-score { font-family:'Bebas Neue',sans-serif; font-size:48px; letter-spacing:2px; line-height:1; }
+    .ring-label { font-family:'Barlow Condensed',sans-serif; font-size:11px; letter-spacing:3px; color:var(--text3); text-transform:uppercase; }
+    .readiness-tag { display:inline-block; font-family:'Barlow Condensed',sans-serif; font-size:12px; letter-spacing:2px; text-transform:uppercase; padding:4px 12px; border-radius:20px; margin-top:8px; }
 
-    /* Stat grid */
-    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px; margin-bottom: 12px; }
-    .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
-    .stat-card-full { grid-column: 1 / -1; }
-    .stat-icon { font-size: 20px; margin-bottom: 8px; }
-    .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 2px; line-height: 1; }
-    .stat-unit { font-size: 13px; color: var(--text3); margin-left: 2px; }
-    .stat-lbl { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; letter-spacing: 2px; color: var(--text3); text-transform: uppercase; margin-top: 4px; }
-    .stat-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+    .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 20px; margin-bottom:12px; }
+    .stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; }
+    .stat-card-full { grid-column:1/-1; }
+    .stat-icon { font-size:20px; margin-bottom:8px; }
+    .stat-val { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:2px; line-height:1; }
+    .stat-unit { font-size:13px; color:var(--text3); margin-left:2px; }
+    .stat-lbl { font-family:'Barlow Condensed',sans-serif; font-size:10px; letter-spacing:2px; color:var(--text3); text-transform:uppercase; margin-top:4px; }
+    .stat-sub { font-size:12px; color:var(--text3); margin-top:4px; }
+    .stat-na { font-family:'Barlow Condensed',sans-serif; font-size:13px; color:var(--text3); letter-spacing:1px; }
 
-    /* Sleep stages */
-    .sleep-stages { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 10px 0 6px; gap: 2px; }
-    .sleep-stage { border-radius: 2px; height: 100%; }
-    .sleep-stage-labels { display: flex; justify-content: space-between; }
-    .sleep-stage-label { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; letter-spacing: 1px; color: var(--text3); }
+    .sleep-stages { display:flex; height:8px; border-radius:4px; overflow:hidden; margin:10px 0 6px; gap:2px; }
+    .sleep-stage { border-radius:2px; height:100%; }
+    .sleep-stage-labels { display:flex; justify-content:space-between; }
+    .sleep-stage-label { font-family:'Barlow Condensed',sans-serif; font-size:10px; letter-spacing:1px; color:var(--text3); }
 
-    /* HR bar */
-    .hr-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
-    .hr-row:last-child { border-bottom: none; }
-    .hr-key { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 1px; color: var(--text3); text-transform: uppercase; }
-    .hr-val { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; }
+    .hr-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+    .hr-row:last-child { border-bottom:none; }
+    .hr-key { font-family:'Barlow Condensed',sans-serif; font-size:12px; letter-spacing:1px; color:var(--text3); text-transform:uppercase; }
+    .hr-val { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:2px; }
 
-    /* Activity bar */
-    .activity-bar-wrap { margin-top: 8px; }
-    .activity-bar-track { background: var(--bg4); border-radius: 4px; height: 6px; }
-    .activity-bar-fill { height: 100%; border-radius: 4px; }
+    .activity-bar-wrap { margin-top:8px; }
+    .activity-bar-track { background:var(--bg4); border-radius:4px; height:6px; }
+    .activity-bar-fill { height:100%; border-radius:4px; }
 
-    /* Steps bar */
-    .steps-hours { display: flex; align-items: flex-end; gap: 3px; height: 40px; margin-top: 10px; }
-    .steps-bar { flex: 1; border-radius: 2px 2px 0 0; background: rgba(255,255,255,0.15); min-height: 3px; transition: height 0.5s ease; }
-    .steps-bar.active { background: rgba(255,255,255,0.6); }
+    .steps-hours { display:flex; align-items:flex-end; gap:3px; height:40px; margin-top:10px; }
+    .steps-bar { flex:1; border-radius:2px 2px 0 0; background:rgba(255,255,255,0.15); min-height:3px; }
+    .steps-bar.active { background:rgba(255,255,255,0.6); }
 
-    .section-lbl { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--text3); text-transform: uppercase; padding: 0 20px; margin: 16px 0 8px; }
+    .section-lbl { font-family:'Barlow Condensed',sans-serif; font-size:11px; letter-spacing:3px; color:var(--text3); text-transform:uppercase; padding:0 20px; margin:16px 0 8px; }
 
-    .readiness-tag { display: inline-block; font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-top: 8px; }
+    /* Disconnect */
+    .disconnect-row { display:flex; align-items:center; justify-content:space-between; padding:0 20px; margin-bottom:24px; }
+    .disconnect-info { font-size:12px; color:var(--text3); }
+    .disconnect-info strong { color:var(--text2); font-family:'Barlow Condensed',sans-serif; letter-spacing:1px; }
   </style>
 </head>
 <body>
@@ -81,137 +102,181 @@
   <div class="top-bar">
     <a href="home.html" class="back-btn">← Back</a>
     <div class="top-bar-title">Wearable</div>
-    <div class="device-badge">
-      <div class="device-dot"></div>
-      <span id="device-name">Apple Watch</span>
+    <div id="device-badge-wrap" style="display:none">
+      <div class="device-badge" onclick="showDisconnectModal()">
+        <div class="device-dot"></div>
+        <span id="device-name-badge">—</span>
+      </div>
     </div>
   </div>
 
-  <!-- Recovery Ring -->
-  <div class="card fade-in" style="margin-top:16px">
-    <div class="recovery-ring-wrap">
-      <div class="ring-wrap">
-        <svg class="ring-svg" width="140" height="140" viewBox="0 0 140 140">
-          <circle class="ring-bg" cx="70" cy="70" r="60" />
-          <circle class="ring-fill" id="ring-fill" cx="70" cy="70" r="60"
-            stroke="#2ecc71"
-            stroke-dasharray="377"
-            stroke-dashoffset="377" />
-        </svg>
-        <div class="ring-center">
-          <div class="ring-score" id="recovery-score">—</div>
-          <div class="ring-label">Recovery</div>
+  <!-- CONNECT SCREEN -->
+  <div id="connect-screen">
+    <div class="connect-hero">
+      <div class="connect-hero-icon">⌚</div>
+      <div class="connect-hero-title">Connect Device</div>
+      <div class="connect-hero-sub">Select your wearable to sync health data</div>
+    </div>
+
+    <div class="device-grid" id="device-grid"></div>
+
+    <div style="padding:20px 0">
+      <button class="btn btn-primary" onclick="connectDevice()" id="connect-btn" style="opacity:0.4;pointer-events:none">Connect</button>
+    </div>
+  </div>
+
+  <!-- CONNECTING ANIMATION -->
+  <div id="connecting-screen">
+    <div class="connecting-spinner"></div>
+    <div class="connecting-label" id="connecting-label">Connecting...</div>
+    <div class="connecting-sub" id="connecting-sub">Syncing health data</div>
+  </div>
+
+  <!-- DATA SCREEN -->
+  <div id="data-screen">
+
+    <!-- Recovery Ring -->
+    <div class="card fade-in" style="margin-top:16px">
+      <div class="recovery-ring-wrap">
+        <div class="ring-wrap">
+          <svg class="ring-svg" width="140" height="140" viewBox="0 0 140 140">
+            <circle class="ring-bg" cx="70" cy="70" r="60" />
+            <circle class="ring-fill" id="ring-fill" cx="70" cy="70" r="60" stroke="#2ecc71" stroke-dasharray="377" stroke-dashoffset="377" />
+          </svg>
+          <div class="ring-center">
+            <div class="ring-score" id="recovery-score">—</div>
+            <div class="ring-label" id="ring-label-text">Recovery</div>
+          </div>
+        </div>
+        <div id="readiness-tag" class="readiness-tag" style="margin-top:12px"></div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px;letter-spacing:1px" id="recovery-msg"></div>
+      </div>
+    </div>
+
+    <!-- Sleep -->
+    <div class="section-lbl">Sleep</div>
+    <div class="stat-grid">
+      <div class="stat-card stat-card-full">
+        <div class="stat-icon">🌙</div>
+        <div style="display:flex;align-items:flex-end;gap:12px">
+          <div>
+            <div class="stat-val" id="sleep-total">—</div>
+            <div class="stat-lbl">Total Sleep</div>
+          </div>
+          <div style="margin-bottom:4px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--text2)" id="sleep-quality-score"></div>
+            <div class="stat-lbl">Quality</div>
+          </div>
+        </div>
+        <div class="sleep-stages" id="sleep-stages-bar"></div>
+        <div class="sleep-stage-labels">
+          <span class="sleep-stage-label" id="lbl-deep"></span>
+          <span class="sleep-stage-label" id="lbl-rem"></span>
+          <span class="sleep-stage-label" id="lbl-light"></span>
+          <span class="sleep-stage-label" id="lbl-awake"></span>
         </div>
       </div>
-      <div id="readiness-tag" class="readiness-tag" style="margin-top:12px"></div>
-      <div style="font-size:12px;color:var(--text3);margin-top:6px;letter-spacing:1px" id="recovery-msg"></div>
+      <div class="stat-card">
+        <div class="stat-icon">🛏️</div>
+        <div class="stat-val" id="sleep-start">—</div>
+        <div class="stat-lbl">Bedtime</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏰</div>
+        <div class="stat-val" id="sleep-end">—</div>
+        <div class="stat-lbl">Wake Up</div>
+      </div>
     </div>
-  </div>
 
-  <!-- Sleep -->
-  <div class="section-lbl">Sleep</div>
-  <div class="stat-grid">
-    <div class="stat-card stat-card-full">
-      <div class="stat-icon">🌙</div>
-      <div style="display:flex;align-items:flex-end;gap:12px">
-        <div>
-          <div class="stat-val" id="sleep-total">—<span class="stat-unit">h</span></div>
-          <div class="stat-lbl">Total Sleep</div>
+    <!-- Heart -->
+    <div class="section-lbl">Heart</div>
+    <div style="padding:0 20px;margin-bottom:12px">
+      <div class="card" style="margin:0">
+        <div class="hr-row">
+          <div class="hr-key">Resting HR</div>
+          <div id="hr-resting-wrap"><span class="hr-val" id="hr-resting">—</span> <span style="font-size:12px;color:var(--text3)">bpm</span></div>
         </div>
-        <div style="margin-bottom:4px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--text2)" id="sleep-quality-score"></div>
-          <div class="stat-lbl">Quality</div>
+        <div class="hr-row" id="hrv-row">
+          <div class="hr-key">HRV</div>
+          <div><span class="hr-val" id="hr-hrv">—</span> <span style="font-size:12px;color:var(--text3)">ms</span></div>
+        </div>
+        <div class="hr-row" id="spo2-row">
+          <div class="hr-key">SpO2</div>
+          <div><span class="hr-val" id="hr-spo2">—</span> <span style="font-size:12px;color:var(--text3)">%</span></div>
+        </div>
+        <div class="hr-row" id="skin-temp-row" style="display:none">
+          <div class="hr-key">Skin Temp</div>
+          <div><span class="hr-val" id="skin-temp">—</span> <span style="font-size:12px;color:var(--text3)">°C</span></div>
         </div>
       </div>
-      <!-- Sleep stages bar -->
-      <div class="sleep-stages" id="sleep-stages-bar"></div>
-      <div class="sleep-stage-labels">
-        <span class="sleep-stage-label" id="lbl-deep"></span>
-        <span class="sleep-stage-label" id="lbl-rem"></span>
-        <span class="sleep-stage-label" id="lbl-light"></span>
-        <span class="sleep-stage-label" id="lbl-awake"></span>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">🛏️</div>
-      <div class="stat-val" id="sleep-start">—</div>
-      <div class="stat-lbl">Bedtime</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">⏰</div>
-      <div class="stat-val" id="sleep-end">—</div>
-      <div class="stat-lbl">Wake Up</div>
-    </div>
-  </div>
-
-  <!-- Heart -->
-  <div class="section-lbl">Heart</div>
-  <div style="padding:0 20px;margin-bottom:12px">
-    <div class="card" style="margin:0">
-      <div class="hr-row">
-        <div class="hr-key">Resting HR</div>
-        <div><span class="hr-val" id="hr-resting">—</span> <span style="font-size:12px;color:var(--text3)">bpm</span></div>
-      </div>
-      <div class="hr-row">
-        <div class="hr-key">HRV</div>
-        <div><span class="hr-val" id="hr-hrv">—</span> <span style="font-size:12px;color:var(--text3)">ms</span></div>
-      </div>
-      <div class="hr-row">
-        <div class="hr-key">SpO2</div>
-        <div><span class="hr-val" id="hr-spo2">—</span> <span style="font-size:12px;color:var(--text3)">%</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Activity -->
-  <div class="section-lbl">Activity</div>
-  <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-icon">👟</div>
-      <div class="stat-val" id="act-steps">—</div>
-      <div class="stat-lbl">Steps</div>
-      <div class="activity-bar-wrap">
-        <div class="activity-bar-track"><div class="activity-bar-fill" id="bar-steps" style="background:#aac4ff"></div></div>
-      </div>
-      <div class="stat-sub" id="steps-goal">/ 10,000</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">🔥</div>
-      <div class="stat-val" id="act-cal">—</div>
-      <div class="stat-lbl">Cal Burned</div>
-      <div class="activity-bar-wrap">
-        <div class="activity-bar-track"><div class="activity-bar-fill" id="bar-cal" style="background:#ff9f43"></div></div>
-      </div>
-      <div class="stat-sub" id="cal-goal">/ 600</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">⚡</div>
-      <div class="stat-val" id="act-active">—<span class="stat-unit">min</span></div>
-      <div class="stat-lbl">Active Minutes</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">🧍</div>
-      <div class="stat-val" id="act-stand">—<span class="stat-unit">h</span></div>
-      <div class="stat-lbl">Stand Hours</div>
     </div>
 
-    <!-- Steps hourly chart -->
-    <div class="stat-card stat-card-full">
-      <div class="stat-lbl" style="margin-bottom:4px">Steps by Hour</div>
-      <div class="steps-hours" id="steps-chart"></div>
-      <div style="display:flex;justify-content:space-between;margin-top:4px">
-        <span style="font-size:9px;color:var(--text3)">12AM</span>
-        <span style="font-size:9px;color:var(--text3)">6AM</span>
-        <span style="font-size:9px;color:var(--text3)">12PM</span>
-        <span style="font-size:9px;color:var(--text3)">6PM</span>
-        <span style="font-size:9px;color:var(--text3)">Now</span>
+    <!-- Activity -->
+    <div class="section-lbl">Activity</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-icon">👟</div>
+        <div class="stat-val" id="act-steps">—</div>
+        <div class="stat-lbl">Steps</div>
+        <div class="activity-bar-wrap">
+          <div class="activity-bar-track"><div class="activity-bar-fill" id="bar-steps" style="background:#aac4ff"></div></div>
+        </div>
+        <div class="stat-sub" id="steps-goal">/ 10,000</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-val" id="act-cal">—</div>
+        <div class="stat-lbl">Cal Burned</div>
+        <div class="activity-bar-wrap">
+          <div class="activity-bar-track"><div class="activity-bar-fill" id="bar-cal" style="background:#ff9f43"></div></div>
+        </div>
+        <div class="stat-sub" id="cal-goal">/ 600</div>
+      </div>
+      <div class="stat-card" id="active-min-card">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-val" id="act-active">—</div>
+        <div class="stat-lbl">Active Minutes</div>
+      </div>
+      <div class="stat-card" id="stand-card">
+        <div class="stat-icon">🧍</div>
+        <div class="stat-val" id="act-stand">—</div>
+        <div class="stat-lbl" id="stand-label">Stand Hours</div>
+      </div>
+      <div class="stat-card stat-card-full">
+        <div class="stat-lbl" style="margin-bottom:4px">Steps by Hour</div>
+        <div class="steps-hours" id="steps-chart"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <span style="font-size:9px;color:var(--text3)">12AM</span>
+          <span style="font-size:9px;color:var(--text3)">6AM</span>
+          <span style="font-size:9px;color:var(--text3)">12PM</span>
+          <span style="font-size:9px;color:var(--text3)">6PM</span>
+          <span style="font-size:9px;color:var(--text3)">Now</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disconnect -->
+    <div class="disconnect-row">
+      <div class="disconnect-info">Connected: <strong id="disconnect-device-name">—</strong></div>
+      <button class="btn btn-sm btn-danger" onclick="showDisconnectModal()">Disconnect</button>
+    </div>
+
+    <div style="padding:0 20px 40px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text3);text-align:center;text-transform:uppercase">
+        Demo data · Simulated from wearable
       </div>
     </div>
   </div>
 
-  <div style="padding:0 20px 40px">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text3);text-align:center;text-transform:uppercase">
-      Demo data · Simulated from wearable
+  <!-- DISCONNECT MODAL -->
+  <div class="modal-overlay" id="disconnect-modal">
+    <div class="modal">
+      <div class="modal-title">Disconnect Device</div>
+      <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Disconnecting will remove your <strong id="modal-device-name"></strong> and hide all health data until you reconnect.</p>
+      <div class="flex-row">
+        <button class="btn btn-secondary" onclick="document.getElementById('disconnect-modal').classList.remove('active')">Cancel</button>
+        <button class="btn btn-danger" onclick="disconnectDevice()">Disconnect</button>
+      </div>
     </div>
   </div>
 
@@ -220,7 +285,99 @@
 <script>
 requireAuth();
 
-// ── SEEDED RANDOM (random per day, consistent within same day) ──
+// ── DEVICE DEFINITIONS ──
+const DEVICES = [
+  {
+    id: 'apple_watch',
+    name: 'Apple Watch',
+    emoji: '⌚',
+    tag: 'Series 9 · Ultra 2',
+    features: ['HRV', 'SpO2', 'Sleep Stages', 'ECG', 'Steps', 'Calories'],
+    // Data ranges — Apple Watch is very accurate and comprehensive
+    ranges: {
+      recovery: [55, 96], sleep: [6, 9], deep: [14, 22], rem: [20, 28], awake: [3, 6],
+      bedHour: [21, 24], steps: [4000, 14000], cal: [350, 750], activeMin: [25, 85],
+      standHours: [8, 14], hr: [48, 65], hrv: [40, 95], spo2: [97, 100],
+      hasHrv: true, hasSpo2: true, hasSleepStages: true, hasSkinTemp: false,
+      ringLabel: 'Recovery', standLabel: 'Stand Hours'
+    }
+  },
+  {
+    id: 'garmin',
+    name: 'Garmin',
+    emoji: '🏃',
+    tag: 'Fenix · Forerunner',
+    features: ['Body Battery', 'HRV', 'SpO2', 'Sleep', 'VO2 Max', 'Steps'],
+    ranges: {
+      recovery: [40, 96], sleep: [5, 9], deep: [12, 20], rem: [18, 26], awake: [3, 8],
+      bedHour: [21, 25], steps: [5000, 16000], cal: [400, 800], activeMin: [30, 90],
+      standHours: [7, 13], hr: [45, 68], hrv: [35, 90], spo2: [96, 100],
+      hasHrv: true, hasSpo2: true, hasSleepStages: true, hasSkinTemp: false,
+      ringLabel: 'Body Battery', standLabel: 'Active Hours'
+    }
+  },
+  {
+    id: 'fitbit',
+    name: 'Fitbit',
+    emoji: '💚',
+    tag: 'Sense · Versa',
+    features: ['Sleep Score', 'SpO2', 'Sleep Stages', 'Steps', 'Calories'],
+    ranges: {
+      recovery: [42, 90], sleep: [5, 9], deep: [10, 20], rem: [16, 26], awake: [4, 9],
+      bedHour: [21, 25], steps: [3000, 13000], cal: [280, 700], activeMin: [20, 75],
+      standHours: [6, 12], hr: [52, 72], hrv: [28, 70], spo2: [95, 100],
+      hasHrv: false, hasSpo2: true, hasSleepStages: true, hasSkinTemp: false,
+      ringLabel: 'Sleep Score', standLabel: 'Active Zone'
+    }
+  },
+  {
+    id: 'whoop',
+    name: 'Whoop',
+    emoji: '💪',
+    tag: 'Whoop 4.0',
+    features: ['Recovery %', 'HRV', 'Strain', 'Sleep Coach', 'Skin Temp'],
+    ranges: {
+      recovery: [30, 96], sleep: [5, 9], deep: [12, 22], rem: [18, 28], awake: [3, 7],
+      bedHour: [21, 25], steps: [2800, 12000], cal: [300, 700], activeMin: [20, 80],
+      standHours: [6, 12], hr: [44, 65], hrv: [50, 110], spo2: [96, 100],
+      hasHrv: true, hasSpo2: false, hasSleepStages: true, hasSkinTemp: true,
+      ringLabel: 'Recovery', standLabel: 'Strain Score'
+    }
+  },
+  {
+    id: 'samsung',
+    name: 'Samsung Galaxy Watch',
+    emoji: '🔵',
+    tag: 'Galaxy Watch 6 · 7',
+    features: ['Sleep Score', 'BIA', 'SpO2', 'Steps', 'Calories', 'Skin Temp'],
+    ranges: {
+      recovery: [45, 92], sleep: [5, 9], deep: [11, 20], rem: [17, 26], awake: [3, 8],
+      bedHour: [21, 25], steps: [3500, 13500], cal: [300, 720], activeMin: [20, 78],
+      standHours: [6, 13], hr: [50, 70], hrv: [30, 75], spo2: [95, 100],
+      hasHrv: true, hasSpo2: true, hasSleepStages: true, hasSkinTemp: true,
+      ringLabel: 'Energy Score', standLabel: 'Active Hours'
+    }
+  },
+  {
+    id: 'oura',
+    name: 'Oura Ring',
+    emoji: '💍',
+    tag: 'Oura Ring Gen 3',
+    features: ['Readiness', 'HRV', 'Skin Temp', 'Sleep Stages', 'SpO2'],
+    ranges: {
+      recovery: [35, 96], sleep: [6, 10], deep: [14, 24], rem: [20, 30], awake: [2, 6],
+      bedHour: [20, 24], steps: [2500, 12000], cal: [250, 650], activeMin: [15, 70],
+      standHours: [5, 12], hr: [44, 62], hrv: [45, 115], spo2: [96, 100],
+      hasHrv: true, hasSpo2: true, hasSleepStages: true, hasSkinTemp: true,
+      ringLabel: 'Readiness', standLabel: 'Activity Score'
+    }
+  }
+];
+
+let selectedDeviceId = null;
+let connectedDevice = null;
+
+// ── SEEDED RANDOM ──
 function seededRand(seed) {
   let s = seed ^ 0xdeadbeef;
   s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
@@ -232,12 +389,13 @@ function seededRand(seed) {
 let _seedCounter = 0;
 let _daySeed = 0;
 
-function initSeed() {
+function initSeed(deviceId) {
   const d = new Date();
   const dateNum = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
   const user = getSession();
-  const emailHash = (user?.email || 'demo').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  _daySeed = dateNum + emailHash * 31;
+  const emailHash = (user?.email || 'demo').split('').reduce((a,c) => a + c.charCodeAt(0), 0);
+  const deviceHash = deviceId.split('').reduce((a,c) => a + c.charCodeAt(0), 0);
+  _daySeed = dateNum + emailHash * 31 + deviceHash * 17;
   _seedCounter = 0;
 }
 
@@ -247,31 +405,118 @@ function rnd(min, max) {
   return Math.floor(val * (max - min + 1)) + min;
 }
 
-function generateDemoData() {
-  initSeed();
+// ── RENDER DEVICE GRID ──
+function renderDeviceGrid() {
+  const grid = document.getElementById('device-grid');
+  grid.innerHTML = DEVICES.map(d => `
+    <div class="device-card" id="dcard-${d.id}" onclick="selectDevice('${d.id}')">
+      <div class="device-emoji">${d.emoji}</div>
+      <div class="device-card-name">${d.name}</div>
+      <div class="device-card-tag">${d.tag}</div>
+      <div class="device-features">
+        ${d.features.map(f => `<span class="device-feat has">${f}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
 
-  const recovery = rnd(42, 96);
-  const sleepH = rnd(5, 9);
+function selectDevice(id) {
+  selectedDeviceId = id;
+  document.querySelectorAll('.device-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById(`dcard-${id}`).classList.add('selected');
+  const btn = document.getElementById('connect-btn');
+  btn.style.opacity = '1';
+  btn.style.pointerEvents = 'auto';
+}
+
+function connectDevice() {
+  if (!selectedDeviceId) return;
+  const device = DEVICES.find(d => d.id === selectedDeviceId);
+
+  document.getElementById('connect-screen').style.display = 'none';
+  document.getElementById('connecting-screen').style.display = 'block';
+  document.getElementById('connecting-label').textContent = `Connecting to ${device.name}...`;
+
+  // Simulate connection steps
+  const steps = ['Searching for device...', 'Pairing...', 'Syncing health data...', 'Almost done...'];
+  let i = 0;
+  const interval = setInterval(() => {
+    document.getElementById('connecting-sub').textContent = steps[i] || 'Finalizing...';
+    i++;
+  }, 600);
+
+  setTimeout(() => {
+    clearInterval(interval);
+    // Save connected device to user account
+    connectedDevice = device;
+    saveConnectedDevice(device.id);
+    document.getElementById('connecting-screen').style.display = 'none';
+    showDataScreen(device);
+  }, 2800);
+}
+
+async function saveConnectedDevice(deviceId) {
+  const user = getSession();
+  const data = await apiPut(`/user/${user.email}`, { connectedDevice: deviceId });
+  if (data.user) setSession(data.user);
+}
+
+async function disconnectDevice() {
+  const user = getSession();
+  await apiPut(`/user/${user.email}`, { connectedDevice: null });
+  const data = await apiGet(`/user/${user.email}`);
+  if (data.user) setSession(data.user);
+  connectedDevice = null;
+  document.getElementById('disconnect-modal').classList.remove('active');
+  document.getElementById('data-screen').style.display = 'none';
+  document.getElementById('device-badge-wrap').style.display = 'none';
+  document.getElementById('connect-screen').style.display = 'block';
+  selectedDeviceId = null;
+  document.querySelectorAll('.device-card').forEach(c => c.classList.remove('selected'));
+  const btn = document.getElementById('connect-btn');
+  btn.style.opacity = '0.4';
+  btn.style.pointerEvents = 'none';
+}
+
+function showDisconnectModal() {
+  document.getElementById('modal-device-name').textContent = connectedDevice?.name || '';
+  document.getElementById('disconnect-modal').classList.add('active');
+}
+
+function showDataScreen(device) {
+  document.getElementById('connect-screen').style.display = 'none';
+  document.getElementById('connecting-screen').style.display = 'none';
+  document.getElementById('data-screen').style.display = 'block';
+  document.getElementById('device-badge-wrap').style.display = 'block';
+  document.getElementById('device-name-badge').textContent = device.name;
+  document.getElementById('disconnect-device-name').textContent = device.name;
+  document.getElementById('ring-label-text').textContent = device.ranges.ringLabel;
+  renderData(device);
+}
+
+function generateDemoData(device) {
+  const r = device.ranges;
+  initSeed(device.id);
+
+  const recovery = rnd(r.recovery[0], r.recovery[1]);
+  const sleepH = rnd(r.sleep[0], r.sleep[1]);
   const sleepMin = rnd(0, 59);
   const sleepTotal = parseFloat((sleepH + sleepMin / 60).toFixed(1));
-
-  const deep = rnd(12, 22);
-  const rem = rnd(18, 28);
-  const awake = rnd(3, 8);
+  const deep = rnd(r.deep[0], r.deep[1]);
+  const rem = rnd(r.rem[0], r.rem[1]);
+  const awake = rnd(r.awake[0], r.awake[1]);
   const light = 100 - deep - rem - awake;
-
-  const bedHour = rnd(21, 25) % 24;
+  const bedHour = rnd(r.bedHour[0], r.bedHour[1]) % 24;
   const bedMin = rnd(0, 59);
   const wakeHour = (bedHour + sleepH + 1) % 24;
-
-  const steps = rnd(2800, 14200);
-  const calBurned = rnd(280, 750);
-  const activeMin = rnd(15, 85);
-  const standHours = rnd(6, 14);
-  const restingHR = rnd(48, 72);
-  const hrv = rnd(28, 95);
-  const spo2 = rnd(95, 100);
-
+  const steps = rnd(r.steps[0], r.steps[1]);
+  const calBurned = rnd(r.cal[0], r.cal[1]);
+  const activeMin = rnd(r.activeMin[0], r.activeMin[1]);
+  const standHours = rnd(r.standHours[0], r.standHours[1]);
+  const restingHR = rnd(r.hr[0], r.hr[1]);
+  const hrv = rnd(r.hrv[0], r.hrv[1]);
+  const spo2 = rnd(r.spo2[0], r.spo2[1]);
+  const skinTemp = parseFloat((36 + rnd(0, 10) / 10).toFixed(1));
   const currentHour = new Date().getHours();
   const hourlySteps = Array.from({length: 24}, (_, i) => {
     if (i > currentHour) return 0;
@@ -279,7 +524,7 @@ function generateDemoData() {
     return rnd(80, 900);
   });
 
-  return { recovery, sleepTotal, deep, rem, light, awake, bedHour, bedMin, wakeHour, steps, calBurned, activeMin, standHours, restingHR, hrv, spo2, hourlySteps };
+  return { recovery, sleepTotal, deep, rem, light, awake, bedHour, bedMin, wakeHour, steps, calBurned, activeMin, standHours, restingHR, hrv, spo2, skinTemp, hourlySteps };
 }
 
 function fmt12(h, m) {
@@ -295,9 +540,9 @@ function recoveryColor(score) {
 }
 
 function recoveryLabel(score) {
-  if (score >= 70) return { text: '✦ Optimal', bg: 'rgba(46,204,113,0.1)', color: '#2ecc71', border: 'rgba(46,204,113,0.3)', msg: 'Your body is well recovered. Push hard today.' };
-  if (score >= 40) return { text: '◈ Moderate', bg: 'rgba(249,202,36,0.1)', color: '#f9ca24', border: 'rgba(249,202,36,0.3)', msg: 'Moderate recovery. Consider a lighter session.' };
-  return { text: '▲ Low', bg: 'rgba(255,59,59,0.1)', color: '#ff3b3b', border: 'rgba(255,59,59,0.3)', msg: 'Low recovery. Rest or do mobility work today.' };
+  if (score >= 70) return { text:'✦ Optimal', bg:'rgba(46,204,113,0.1)', color:'#2ecc71', border:'rgba(46,204,113,0.3)', msg:'Your body is well recovered. Push hard today.' };
+  if (score >= 40) return { text:'◈ Moderate', bg:'rgba(249,202,36,0.1)', color:'#f9ca24', border:'rgba(249,202,36,0.3)', msg:'Moderate recovery. Consider a lighter session.' };
+  return { text:'▲ Low', bg:'rgba(255,59,59,0.1)', color:'#ff3b3b', border:'rgba(255,59,59,0.3)', msg:'Low recovery. Rest or do mobility work today.' };
 }
 
 function qualityLabel(sleep) {
@@ -307,20 +552,19 @@ function qualityLabel(sleep) {
   return 'Poor';
 }
 
-function render() {
-  const d = generateDemoData();
+function renderData(device) {
+  const d = generateDemoData(device);
+  const r = device.ranges;
   const color = recoveryColor(d.recovery);
   const label = recoveryLabel(d.recovery);
 
-  // Recovery ring
-  const circumference = 377;
-  const offset = circumference - (d.recovery / 100) * circumference;
+  // Ring
+  const offset = 377 - (d.recovery / 100) * 377;
   const ring = document.getElementById('ring-fill');
   ring.style.stroke = color;
   setTimeout(() => { ring.style.strokeDashoffset = offset; }, 100);
   document.getElementById('recovery-score').textContent = d.recovery;
   document.getElementById('recovery-score').style.color = color;
-
   const tag = document.getElementById('readiness-tag');
   tag.textContent = label.text;
   tag.style.background = label.bg;
@@ -333,10 +577,7 @@ function render() {
   document.getElementById('sleep-quality-score').textContent = qualityLabel(d.sleepTotal);
   document.getElementById('sleep-start').textContent = fmt12(d.bedHour, d.bedMin);
   document.getElementById('sleep-end').textContent = fmt12(d.wakeHour, 0);
-
-  // Sleep stages bar
-  const stagesBar = document.getElementById('sleep-stages-bar');
-  stagesBar.innerHTML = `
+  document.getElementById('sleep-stages-bar').innerHTML = `
     <div class="sleep-stage" style="width:${d.deep}%;background:#6c63ff"></div>
     <div class="sleep-stage" style="width:${d.rem}%;background:#2ecc71"></div>
     <div class="sleep-stage" style="width:${d.light}%;background:#aac4ff"></div>
@@ -347,10 +588,14 @@ function render() {
   document.getElementById('lbl-light').innerHTML = `<span style="color:#aac4ff">■</span> Light ${d.light}%`;
   document.getElementById('lbl-awake').innerHTML = `<span style="color:var(--text3)">■</span> Awake ${d.awake}%`;
 
-  // Heart
+  // Heart — show/hide based on device capabilities
   document.getElementById('hr-resting').textContent = d.restingHR;
-  document.getElementById('hr-hrv').textContent = d.hrv;
-  document.getElementById('hr-spo2').textContent = d.spo2;
+  document.getElementById('hrv-row').style.display = r.hasHrv ? 'flex' : 'none';
+  if (r.hasHrv) document.getElementById('hr-hrv').textContent = d.hrv;
+  document.getElementById('spo2-row').style.display = r.hasSpo2 ? 'flex' : 'none';
+  if (r.hasSpo2) document.getElementById('hr-spo2').textContent = d.spo2;
+  document.getElementById('skin-temp-row').style.display = r.hasSkinTemp ? 'flex' : 'none';
+  if (r.hasSkinTemp) document.getElementById('skin-temp').textContent = d.skinTemp;
 
   // Activity
   const stepGoal = 10000;
@@ -358,29 +603,42 @@ function render() {
   document.getElementById('act-steps').textContent = d.steps.toLocaleString();
   document.getElementById('act-cal').textContent = d.calBurned;
   document.getElementById('act-active').innerHTML = `${d.activeMin}<span class="stat-unit">min</span>`;
-  document.getElementById('act-stand').innerHTML = `${d.standHours}<span class="stat-unit">h</span>`;
-  document.getElementById('steps-goal').textContent = `/ ${stepGoal.toLocaleString()}`;
-  document.getElementById('cal-goal').textContent = `/ ${calGoal}`;
-  document.getElementById('bar-steps').style.width = Math.min(100, Math.round((d.steps / stepGoal) * 100)) + '%';
-  document.getElementById('bar-cal').style.width = Math.min(100, Math.round((d.calBurned / calGoal) * 100)) + '%';
+  document.getElementById('act-stand').innerHTML = `${d.standHours}<span class="stat-unit">${device.id==='whoop'?'':'h'}</span>`;
+  document.getElementById('stand-label').textContent = r.standLabel;
+  document.getElementById('bar-steps').style.width = Math.min(100, Math.round((d.steps/stepGoal)*100)) + '%';
+  document.getElementById('bar-cal').style.width = Math.min(100, Math.round((d.calBurned/calGoal)*100)) + '%';
 
-  // Hourly steps chart
   const maxStep = Math.max(...d.hourlySteps, 1);
   const currentHour = new Date().getHours();
-  document.getElementById('steps-chart').innerHTML = d.hourlySteps.map((s, i) => `
-    <div class="steps-bar ${i === currentHour ? 'active' : ''}"
-      style="height:${Math.max(3, Math.round((s / maxStep) * 40))}px"
-      title="${i}:00 — ${s} steps"></div>
+  document.getElementById('steps-chart').innerHTML = d.hourlySteps.map((s,i) => `
+    <div class="steps-bar ${i===currentHour?'active':''}" style="height:${Math.max(3,Math.round((s/maxStep)*40))}px"></div>
   `).join('');
 
-  // Save to localStorage for home preview
+  // Save for home preview
   try {
-    const recKey = `gymrow_recovery_${today()}`;
-    localStorage.setItem(recKey, JSON.stringify({ recovery: d.recovery, sleep: d.sleepTotal }));
+    localStorage.setItem(`gymrow_recovery_${today()}`, JSON.stringify({ recovery: d.recovery, sleep: d.sleepTotal }));
   } catch(e) {}
 }
 
-render();
+// ── INIT ──
+async function init() {
+  renderDeviceGrid();
+  const user = getSession();
+  // Check if user has a connected device saved
+  const data = await apiGet(`/user/${user.email}`);
+  const savedDeviceId = data.user?.connectedDevice;
+  if (savedDeviceId) {
+    const device = DEVICES.find(d => d.id === savedDeviceId);
+    if (device) {
+      connectedDevice = device;
+      showDataScreen(device);
+      return;
+    }
+  }
+  document.getElementById('connect-screen').style.display = 'block';
+}
+
+init();
 </script>
 </body>
 </html>
