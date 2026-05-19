@@ -122,7 +122,7 @@
       </div>
       <div class="timer-btns">
         <button class="btn btn-sm btn-secondary" id="timer-btn" onclick="toggleTimer()">Start</button>
-        <button class="btn btn-sm btn-danger" id="finish-btn" onclick="finishSession()" style="display:none">Finish</button>
+        <button class="btn btn-sm btn-danger" id="finish-btn" onclick="finishSession()">Finish</button>
       </div>
     </div>
 
@@ -131,7 +131,48 @@
     <div class="section-header mt-8">
       <span class="section-title">Session History</span>
     </div>
+    <!-- Date search -->
+    <div style="padding:0 20px 10px;display:flex;gap:8px;align-items:center">
+      <input type="date" id="history-date-filter" style="flex:1;font-size:13px;padding:7px 10px" oninput="renderHistory()" />
+      <button class="btn btn-sm btn-secondary" onclick="document.getElementById('history-date-filter').value='';renderHistory()">Clear</button>
+    </div>
     <div id="history-container" style="padding-bottom:30px"></div>
+  </div>
+
+  <!-- SESSION DETAIL MODAL -->
+  <div class="modal-overlay" id="session-detail-modal">
+    <div class="modal" style="max-height:85vh;overflow-y:auto">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+        <div>
+          <div class="modal-title" id="sd-date" style="margin-bottom:4px"></div>
+          <div style="font-size:12px;color:var(--text3);letter-spacing:1px" id="sd-time"></div>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="document.getElementById('session-detail-modal').classList.remove('active')">Close</button>
+      </div>
+
+      <!-- Stats strip -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:16px 0">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px" id="sd-duration">—</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:3px">Duration</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px" id="sd-exercises">—</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:3px">Exercises</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px" id="sd-total-sets">—</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:3px">Total Sets</div>
+        </div>
+      </div>
+
+      <!-- Exercise breakdown -->
+      <div id="sd-exercises-list"></div>
+
+      <div style="margin-top:16px">
+        <button class="btn btn-danger" id="sd-delete-btn">Delete Session</button>
+      </div>
+    </div>
   </div>
 
   <!-- NEW SPLIT MODAL -->
@@ -419,7 +460,6 @@ function toggleTimer() {
     sessionRunning = true;
     if (!sessionStart) sessionStart = new Date().toISOString();
     document.getElementById('timer-btn').textContent = 'Pause';
-    document.getElementById('finish-btn').style.display = 'inline-block';
     document.getElementById('timer-label').textContent = 'Session running';
     timerInterval = setInterval(() => {
       sessionSeconds++;
@@ -439,7 +479,6 @@ function resetTimer() {
   document.getElementById('timer-display').textContent = '00:00:00';
   document.getElementById('timer-label').textContent = 'Session not started';
   document.getElementById('timer-btn').textContent = 'Start';
-  document.getElementById('finish-btn').style.display = 'none';
 }
 
 function formatTime(secs) {
@@ -448,10 +487,13 @@ function formatTime(secs) {
 
 async function finishSession() {
   if (!confirm('Finish and save this session?')) return;
-  clearInterval(timerInterval); sessionRunning = false;
+  clearInterval(timerInterval);
+  sessionRunning = false;
+  const endTime = new Date();
+  // If timer was never started, use now as both start and end
+  if (!sessionStart) sessionStart = endTime.toISOString();
   const sp = splits[currentSplitIdx];
   const exercises = (sp.dayExercises||[])[currentDayIdx] || [];
-  const endTime = new Date();
   const sessionEntry = {
     id: Date.now().toString(),
     date: endTime.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
@@ -468,7 +510,7 @@ async function finishSession() {
   resetTimer();
   renderExercises();
   renderHistory();
-  alert(`Session saved! Duration: ${sessionEntry.duration}`);
+  alert(`Session saved!${sessionSeconds > 0 ? ' Duration: ' + sessionEntry.duration : ''}`);
 }
 
 // ── EXERCISES ──
@@ -807,32 +849,107 @@ async function deleteExercise(ei) {
 function renderHistory() {
   const sp = splits[currentSplitIdx];
   const dayLabel = sp.days[currentDayIdx];
-  const history = (sp.history||[]).filter(h => h.dayLabel === dayLabel);
+  let history = (sp.history||[]).filter(h => h.dayLabel === dayLabel);
+
+  // Date filter
+  const filterDate = document.getElementById('history-date-filter')?.value;
+  if (filterDate) {
+    history = history.filter(h => {
+      // h.date is like "17 May 2026", convert filterDate "2026-05-17" to match
+      const fd = new Date(filterDate);
+      const label = fd.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+      return h.date === label;
+    });
+  }
+
   const container = document.getElementById('history-container');
   if (history.length === 0) {
-    container.innerHTML = `<div class="text-center text-muted" style="padding:16px 20px 24px">No sessions recorded yet.</div>`;
+    container.innerHTML = `<div class="text-center text-muted" style="padding:16px 20px 24px">${filterDate ? 'No sessions on this date.' : 'No sessions recorded yet.'}</div>`;
     return;
   }
-  container.innerHTML = history.map(h => `
-    <div class="history-card">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
-        <div class="history-date" style="margin-bottom:0">
-          ${h.date} · ${h.duration} ·
-          ${new Date(h.startTime).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})} →
-          ${new Date(h.endTime).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}
+
+  container.innerHTML = history.map(h => {
+    const totalSets = h.exercises.reduce((s,e) => s + (e.sets||[]).length, 0);
+    const timeStr = h.startTime ? new Date(h.startTime).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true}) : '';
+    return `
+      <div class="history-card" onclick="openSessionDetail('${h.id}')" style="cursor:pointer;transition:border-color 0.2s" onmouseover="this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <div class="history-date" style="margin-bottom:2px">${h.date}${h.duration ? ' · ' + h.duration : ''}${timeStr ? ' · ' + timeStr : ''}</div>
+            <div style="font-size:11px;color:var(--text3);letter-spacing:1px">${h.exercises.length} exercise${h.exercises.length!==1?'s':''} · ${totalSets} set${totalSets!==1?'s':''}</div>
+          </div>
+          <span style="color:var(--text3);font-size:18px;padding-left:8px">›</span>
         </div>
-        <button onclick="deleteSession('${h.id}')"
-          style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 0 0 10px;flex-shrink:0;transition:color 0.2s"
-          onmouseover="this.style.color='#ff3b3b'" onmouseout="this.style.color='var(--text3)'">✕</button>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${h.exercises.slice(0,4).map(ex => `
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;padding:2px 8px;border-radius:10px;background:var(--bg4);color:var(--text2);border:1px solid var(--border2)">${ex.name}</span>
+          `).join('')}
+          ${h.exercises.length > 4 ? `<span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;padding:2px 8px;border-radius:10px;background:var(--bg4);color:var(--text3)">+${h.exercises.length-4} more</span>` : ''}
+        </div>
       </div>
-      ${h.exercises.map(ex => `
-        <div class="history-ex">
-          <strong>${ex.name}</strong>
-          <span style="color:var(--text3)"> — ${ex.sets.length > 0 ? ex.sets.map(s=>`${s.reps}×${s.weight}`).join(', ') : 'no sets'}</span>
+    `;
+  }).join('');
+}
+
+function openSessionDetail(sessionId) {
+  const sp = splits[currentSplitIdx];
+  const h = (sp.history||[]).find(s => s.id === sessionId);
+  if (!h) return;
+
+  const timeStr = h.startTime && h.endTime
+    ? `${new Date(h.startTime).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})} → ${new Date(h.endTime).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true})}`
+    : '';
+
+  const totalSets = h.exercises.reduce((s,e) => s+(e.sets||[]).length, 0);
+
+  document.getElementById('sd-date').textContent = h.date;
+  document.getElementById('sd-time').textContent = timeStr || 'No time recorded';
+  document.getElementById('sd-duration').textContent = h.duration || '—';
+  document.getElementById('sd-exercises').textContent = h.exercises.length;
+  document.getElementById('sd-total-sets').textContent = totalSets;
+  document.getElementById('sd-delete-btn').onclick = () => deleteSession(sessionId);
+
+  const weightUnit = userData?.weightUnit || 'kg';
+  document.getElementById('sd-exercises-list').innerHTML = h.exercises.map(ex => {
+    const sets = ex.sets || [];
+    const maxSet = sets.filter(s=>parseFloat(s.weight)>0).reduce((b,s)=>parseFloat(s.weight)>parseFloat(b.weight)?s:b, {weight:0,unit:weightUnit});
+    const totalVol = sets.reduce((s,set)=>(parseFloat(set.reps)||0)*(parseFloat(set.weight)||0)+s, 0);
+    return `
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;letter-spacing:1px;font-weight:600">${ex.name}</div>
+          <div style="font-size:12px;color:var(--text3)">${sets.length} set${sets.length!==1?'s':''}</div>
         </div>
-      `).join('')}
-    </div>
-  `).join('');
+        ${sets.length > 0 ? `
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr>
+              <th style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;padding:4px 8px;text-align:left;border-bottom:1px solid var(--border)">#</th>
+              <th style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;padding:4px 8px;text-align:left;border-bottom:1px solid var(--border)">Reps</th>
+              <th style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;padding:4px 8px;text-align:left;border-bottom:1px solid var(--border)">Weight</th>
+              <th style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;padding:4px 8px;text-align:left;border-bottom:1px solid var(--border)">Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sets.map((s,i) => `
+              <tr>
+                <td style="padding:7px 8px;border-bottom:1px solid var(--border);color:var(--text3)">${i+1}</td>
+                <td style="padding:7px 8px;border-bottom:1px solid var(--border)">${s.reps}</td>
+                <td style="padding:7px 8px;border-bottom:1px solid var(--border)">${s.weight}<span style="font-size:10px;color:var(--text3);margin-left:2px">${s.unit||weightUnit}</span></td>
+                <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">${s.time||'—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div style="display:flex;gap:16px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+          ${maxSet.weight > 0 ? `<div style="font-size:12px;color:var(--text3)">Best: <span style="color:var(--text2);font-weight:500">${maxSet.weight} ${maxSet.unit||weightUnit}</span></div>` : ''}
+          ${totalVol > 0 ? `<div style="font-size:12px;color:var(--text3)">Volume: <span style="color:var(--text2);font-weight:500">${totalVol} ${weightUnit}</span></div>` : ''}
+        </div>` : `<div style="font-size:12px;color:var(--text3);font-style:italic">No sets recorded</div>`}
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('session-detail-modal').classList.add('active');
 }
 
 async function deleteSession(sessionId) {
@@ -840,6 +957,7 @@ async function deleteSession(sessionId) {
   const sp = splits[currentSplitIdx];
   sp.history = (sp.history||[]).filter(h => h.id !== sessionId);
   await saveToServer();
+  document.getElementById('session-detail-modal').classList.remove('active');
   renderHistory();
   renderExercises();
 }
