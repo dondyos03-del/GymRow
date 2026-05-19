@@ -1439,7 +1439,7 @@ function openExDetail(name) {
   document.getElementById('exd-howto').textContent = ex.howto;
 
   // Detect context by checking which view is currently visible
-  const dayViewVisible = document.getElementById('day-view').style.display !== 'none';
+  const dayViewVisible = document.getElementById('day-view').style.display === 'block';
   exDetailFromMainLibrary = !dayViewVisible;
 
   // Always re-enable first
