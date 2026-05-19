@@ -670,18 +670,26 @@ function renderExercises() {
 
   container.innerHTML = exercises.map((ex, ei) => {
     const kpi = getExerciseKPIs(ex.name, currentSplitIdx, currentDayIdx);
-    const hasHistory = kpi.totalSessions > 0;
     const progClass = kpi.progression === null ? 'neutral' : parseFloat(kpi.progression) >= 0 ? 'up' : 'down';
     const progStr = kpi.progression === null ? '—' : `${parseFloat(kpi.progression) > 0 ? '+' : ''}${kpi.progression}%`;
     const bestStr = kpi.bestEver ? `${kpi.bestEver.weight} ${kpi.bestEver.unit}` : '—';
     const lastStr = kpi.lastSession ? `${kpi.lastSession.weight} ${kpi.lastSession.unit}` : '—';
     const showKpi = kpi.totalSessions > 0 && kpi.lastSession !== null;
 
+    // Pull data from My Exercises
+    const myExData = getMyExData(ex.name);
+    const hasNotes = myExData?.notes;
+    const hasTargets = myExData?.targetSets || myExData?.targetReps;
+
     return `
     <div class="ex-block">
       <div class="ex-block-header">
-        <div class="ex-block-name">${ex.name}</div>
-        <div style="display:flex;gap:8px">
+        <div>
+          <div class="ex-block-name">${ex.name}</div>
+          ${hasNotes ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:0.5px">📝 ${myExData.notes}</div>` : ''}
+          ${hasTargets ? `<div style="font-size:11px;color:var(--text3);margin-top:1px;letter-spacing:0.5px">🎯 ${myExData.targetSets||'?'} sets × ${myExData.targetReps||'?'} reps</div>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
           ${showKpi ? `<button class="btn btn-sm btn-secondary" onclick="openKpiModal(${ei})">📈 KPI</button>` : ''}
           <button class="btn btn-sm btn-danger" onclick="deleteExercise(${ei})">Remove</button>
         </div>
@@ -1116,18 +1124,6 @@ function openAddExModal() {
 }
 function closeAddExModal() { document.getElementById('add-ex-modal').classList.remove('active'); }
 
-async function addExercise() {
-  const name = document.getElementById('new-ex-name').value.trim();
-  const msg = document.getElementById('ex-msg');
-  if (!name) { showMsg(msg, 'Enter an exercise name.'); return; }
-  const sp = splits[currentSplitIdx];
-  if (!sp.dayExercises) sp.dayExercises = sp.days.map(() => []);
-  sp.dayExercises[currentDayIdx].push({ name, sets: [] });
-  await saveToServer();
-  closeAddExModal();
-  renderExercises();
-}
-
 function openNewSplit() {
   document.getElementById('split-name-input').value = '';
   document.getElementById('split-msg').style.display = 'none';
@@ -1277,6 +1273,9 @@ function renderMyExercises() {
           </div>
         </div>
         ${ex.notes ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;font-style:italic">📝 ${ex.notes}</div>` : ''}
+        <div style="display:flex;gap:8px;margin-top:10px" onclick="event.stopPropagation()">
+          <button onclick="addMyExToDay('${ex.name.replace(/'/g,"\\'")}');event.stopPropagation()" style="background:transparent;border:1px solid var(--border2);border-radius:4px;color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;padding:5px 12px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='#2ecc71';this.style.color='#2ecc71'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">+ Add to Day</button>
+        </div>
       </div>
     `;
   }).join('');
@@ -1724,6 +1723,21 @@ function closeExDetail() {
   document.getElementById('ex-detail-modal').classList.remove('active');
 }
 
+// ── UNIFIED ADD FUNCTION ──
+// Auto-add to My Exercises whenever an exercise is added anywhere
+async function ensureInMyExercises(name, muscle, equipment) {
+  const myExs = userData?.myExercises || [];
+  if (!myExs.find(e => e.name === name)) {
+    myExs.push({ name, muscle: muscle||null, equipment: equipment||null, targetSets:null, targetReps:null, notes:null });
+    const data = await apiPut(`/user/${user.email}`, { myExercises: myExs });
+    if (data.user) { userData = data.user; setSession(data.user); }
+  }
+}
+
+function getMyExData(name) {
+  return (userData?.myExercises || []).find(e => e.name === name) || null;
+}
+
 async function addExFromLibrary() {
   if (!libSelectedEx) return;
   const msg = document.getElementById('exd-add-msg');
@@ -1743,23 +1757,71 @@ async function addExFromLibrary() {
       return;
     }
     sp.dayExercises[di].push({ name: libSelectedEx.name, sets: [] });
+    // Auto-add to My Exercises
+    await ensureInMyExercises(libSelectedEx.name, libSelectedEx.muscle, libSelectedEx.equipment);
     await saveToServer();
     showMsg(msg, `✓ Added to ${sp.name} · ${sp.days[di]}`, 'success');
     msg.style.display = 'block';
     setTimeout(() => { if (msg.classList.contains('success')) msg.style.display = 'none'; }, 2500);
   } else {
-    // Inside a workout — use currentSplitIdx and currentDayIdx directly
     const sp = splits[currentSplitIdx];
     if (!sp.dayExercises) sp.dayExercises = sp.days.map(()=>[]);
     if (sp.dayExercises[currentDayIdx].find(e => e.name === libSelectedEx.name)) {
-      showMsg(msg, `${libSelectedEx.name} is already in this day.`); return;
+      showMsg(msg, `${libSelectedEx.name} is already in this day.`);
+      msg.style.display = 'block';
+      return;
     }
     sp.dayExercises[currentDayIdx].push({ name: libSelectedEx.name, sets: [] });
+    await ensureInMyExercises(libSelectedEx.name, libSelectedEx.muscle, libSelectedEx.equipment);
     await saveToServer();
     closeExDetail();
     closeAddExModal();
     renderExercises();
   }
+}
+
+// Also auto-add to My Exercises when adding manually inside workout
+async function addExercise() {
+  const name = document.getElementById('new-ex-name').value.trim();
+  const msg = document.getElementById('ex-msg');
+  if (!name) { showMsg(msg, 'Enter an exercise name.'); return; }
+  const sp = splits[currentSplitIdx];
+  if (!sp.dayExercises) sp.dayExercises = sp.days.map(()=>[]);
+  if (sp.dayExercises[currentDayIdx].find(e => e.name === name)) {
+    showMsg(msg, `${name} is already in this day.`); return;
+  }
+  sp.dayExercises[currentDayIdx].push({ name, sets: [] });
+  await ensureInMyExercises(name, null, null);
+  await saveToServer();
+  closeAddExModal();
+  renderExercises();
+}
+
+// Add from My Exercises to a split day
+async function addMyExToDay(name) {
+  const myEx = getMyExData(name);
+  // Show split/day picker reusing the same modal
+  libSelectedEx = { name, muscle: myEx?.muscle||'', equipment: myEx?.equipment||'', howto:'' };
+  exDetailFromMainLibrary = true;
+  const splitSel = document.getElementById('exd-split-select');
+  const daySel = document.getElementById('exd-day-select');
+  splitSel.disabled = false; daySel.disabled = false;
+  document.getElementById('exd-name').textContent = name;
+  document.getElementById('exd-muscle').textContent = myEx?.muscle || '';
+  document.getElementById('exd-equipment').textContent = myEx?.equipment ? '🏋️ '+myEx.equipment : '';
+  document.getElementById('exd-category').textContent = '';
+  document.getElementById('exd-howto').textContent = myEx?.notes ? '📝 ' + myEx.notes : 'No how-to for manual exercises.';
+  document.getElementById('exd-add-msg').style.display = 'none';
+  document.getElementById('exd-split-picker').style.display = 'block';
+  if (splits.length === 0) {
+    splitSel.innerHTML = '<option value="">No splits yet</option>'; splitSel.disabled = true;
+  } else {
+    splitSel.innerHTML = '<option value="">— Select Split —</option>' +
+      splits.map((sp,si) => `<option value="${si}">${sp.name}</option>`).join('');
+  }
+  daySel.innerHTML = '<option value="">— Select Day —</option>';
+  document.getElementById('exd-day-wrap').style.display = 'none';
+  document.getElementById('ex-detail-modal').classList.add('active');
 }
 
 load();
