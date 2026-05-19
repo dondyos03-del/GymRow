@@ -264,7 +264,7 @@
           </div>
           <div>
             <label>Target Reps</label>
-            <input type="number" id="myexd-reps" placeholder="e.g. 8" min="1" />
+            <input type="text" id="myexd-reps" placeholder="e.g. 8 or 8-10" />
           </div>
         </div>
         <div class="form-group" style="margin-bottom:10px">
@@ -1344,7 +1344,7 @@ async function saveMyExDetail() {
   const idx = myExs.findIndex(e=>e.name===myExCurrentName);
   if (idx === -1) return;
   myExs[idx].targetSets = parseInt(document.getElementById('myexd-sets').value) || null;
-  myExs[idx].targetReps = parseInt(document.getElementById('myexd-reps').value) || null;
+  myExs[idx].targetReps = document.getElementById('myexd-reps').value.trim() || null;
   myExs[idx].notes = document.getElementById('myexd-notes').value.trim() || null;
   await saveMyExToServer(myExs);
   closeMyExDetail();
