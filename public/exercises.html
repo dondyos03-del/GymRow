@@ -156,17 +156,62 @@
 
   <!-- ADD EXERCISE MODAL -->
   <div class="modal-overlay" id="add-ex-modal">
+    <div class="modal" style="max-height:85vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div class="modal-title" style="margin-bottom:0">Add Exercise</div>
+        <button class="btn btn-sm btn-secondary" onclick="closeAddExModal()">Close</button>
+      </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px">
+        <div id="ex-tab-library" onclick="switchExTab('library')"
+          style="flex:1;text-align:center;padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid #fff;color:#fff">
+          Library
+        </div>
+        <div id="ex-tab-manual" onclick="switchExTab('manual')"
+          style="flex:1;text-align:center;padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3)">
+          Manual
+        </div>
+      </div>
+
+      <!-- LIBRARY TAB -->
+      <div id="ex-panel-library">
+        <input type="text" id="lib-search" placeholder="Search exercises..." oninput="filterLibrary()" style="margin-bottom:10px" />
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="lib-cat-filters"></div>
+        <div id="lib-list" style="max-height:320px;overflow-y:auto"></div>
+      </div>
+
+      <!-- MANUAL TAB -->
+      <div id="ex-panel-manual" style="display:none">
+        <div class="form-group">
+          <label>Exercise Name</label>
+          <input type="text" id="new-ex-name" placeholder="e.g. Bench Press" />
+        </div>
+        <div id="ex-msg" class="msg" style="display:none;margin:0 0 12px"></div>
+        <div class="flex-row">
+          <button class="btn btn-secondary" onclick="closeAddExModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="addExercise()">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXERCISE DETAIL MODAL (from library) -->
+  <div class="modal-overlay" id="ex-detail-modal">
     <div class="modal">
-      <div class="modal-title">Add Exercise</div>
-      <div class="form-group">
-        <label>Exercise Name</label>
-        <input type="text" id="new-ex-name" placeholder="e.g. Bench Press" />
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div class="modal-title" id="exd-name" style="margin-bottom:4px"></div>
+          <div style="font-size:12px;color:var(--text3);letter-spacing:1px" id="exd-muscle"></div>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="closeExDetail()">✕</button>
       </div>
-      <div id="ex-msg" class="msg" style="display:none;margin:0 0 12px"></div>
-      <div class="flex-row">
-        <button class="btn btn-secondary" onclick="closeAddExModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="addExercise()">Add</button>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <span id="exd-equipment" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;color:var(--text2)"></span>
+        <span id="exd-category" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;color:var(--text2)"></span>
       </div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:20px;background:var(--bg3);border-radius:8px;padding:14px" id="exd-howto"></div>
+      <button class="btn btn-primary" onclick="addExFromLibrary()">+ Add to Workout</button>
     </div>
   </div>
 
@@ -803,6 +848,9 @@ async function deleteSession(sessionId) {
 function openAddExModal() {
   document.getElementById('new-ex-name').value = '';
   document.getElementById('ex-msg').style.display = 'none';
+  libActiveCat = 'All';
+  renderLibraryCatFilters();
+  filterLibrary();
   document.getElementById('add-ex-modal').classList.add('active');
 }
 function closeAddExModal() { document.getElementById('add-ex-modal').classList.remove('active'); }
@@ -863,6 +911,146 @@ async function deleteSplit(si) {
 async function saveToServer() {
   const data = await apiPut(`/user/${user.email}`, { splits });
   if (data.user) { userData = data.user; setSession(data.user); }
+}
+
+// ── EXERCISE LIBRARY ──
+const EXERCISE_LIBRARY = [
+  { name:'Bench Press', category:'Chest', muscle:'Pectoralis Major', equipment:'Barbell', howto:'Lie flat on a bench. Grip the barbell slightly wider than shoulder-width. Lower the bar to your mid-chest with control, then press back up explosively. Keep your feet flat on the floor and back slightly arched.' },
+  { name:'Incline Bench Press', category:'Chest', muscle:'Upper Chest', equipment:'Barbell', howto:'Set bench to 30–45°. Grip barbell slightly wider than shoulders. Lower bar to upper chest, press back up. Targets the upper chest and front deltoids more than flat bench.' },
+  { name:'Decline Bench Press', category:'Chest', muscle:'Lower Chest', equipment:'Barbell', howto:'Set bench to a 15–30° decline. Lower bar to lower chest, press up. Emphasizes the lower portion of the pectorals.' },
+  { name:'Dumbbell Flyes', category:'Chest', muscle:'Pectoralis Major', equipment:'Dumbbells', howto:'Lie on a flat bench with a dumbbell in each hand. With a slight bend in elbows, lower arms out wide until you feel a stretch in your chest. Bring dumbbells back up in an arc.' },
+  { name:'Cable Crossover', category:'Chest', muscle:'Pectoralis Major', equipment:'Cable Machine', howto:'Stand between two high cable pulleys. Pull the handles down and across your body, squeezing your chest at the bottom. Control the return.' },
+  { name:'Push-Up', category:'Chest', muscle:'Pectoralis Major', equipment:'Bodyweight', howto:'Start in a high plank with hands slightly wider than shoulders. Lower your chest to the floor keeping your body straight, then push back up.' },
+  { name:'Dips (Chest)', category:'Chest', muscle:'Lower Chest', equipment:'Dip Bars', howto:'Grip the bars and lean forward slightly. Lower yourself until elbows reach 90°, then push back up. Leaning forward targets the chest more than triceps.' },
+  { name:'Machine Chest Press', category:'Chest', muscle:'Pectoralis Major', equipment:'Machine', howto:'Sit with back flat against pad. Grip handles at chest level and press forward until arms are extended. Control the return.' },
+  { name:'Deadlift', category:'Back', muscle:'Entire Posterior Chain', equipment:'Barbell', howto:'Stand with feet hip-width apart, bar over mid-foot. Hinge at hips, grip bar just outside legs. Keep back flat, chest up. Drive through heels and extend hips and knees simultaneously.' },
+  { name:'Pull-Up', category:'Back', muscle:'Latissimus Dorsi', equipment:'Pull-Up Bar', howto:'Hang from the bar with an overhand grip wider than shoulders. Pull your chest toward the bar by driving elbows down. Lower with control.' },
+  { name:'Chin-Up', category:'Back', muscle:'Lats & Biceps', equipment:'Pull-Up Bar', howto:'Hang from the bar with an underhand grip shoulder-width apart. Pull yourself up until chin clears the bar. Lower with control.' },
+  { name:'Barbell Row', category:'Back', muscle:'Latissimus Dorsi', equipment:'Barbell', howto:'Hinge forward about 45°, grip bar slightly wider than shoulder-width. Pull the bar to your lower chest/upper abdomen. Squeeze the back at the top, lower with control.' },
+  { name:'Seated Cable Row', category:'Back', muscle:'Middle Back', equipment:'Cable Machine', howto:'Sit at the cable machine with feet on the platform. Pull the handle to your abdomen while keeping your back straight and squeezing your shoulder blades together.' },
+  { name:'Lat Pulldown', category:'Back', muscle:'Latissimus Dorsi', equipment:'Cable Machine', howto:'Grip the bar wider than shoulder-width. Pull the bar down to your upper chest while leaning back slightly. Control the return all the way up.' },
+  { name:'Single-Arm Dumbbell Row', category:'Back', muscle:'Latissimus Dorsi', equipment:'Dumbbells', howto:'Place one knee and hand on a bench for support. With the other hand, pull a dumbbell straight up toward your hip, keeping your elbow close to your body.' },
+  { name:'T-Bar Row', category:'Back', muscle:'Middle Back', equipment:'T-Bar Machine', howto:'Straddle the bar, hinge forward. Pull the bar toward your chest by driving your elbows back. Squeeze your back at the top.' },
+  { name:'Face Pull', category:'Back', muscle:'Rear Deltoids & Traps', equipment:'Cable Machine', howto:'Set the cable at head height. Pull the rope toward your face, separating your hands at the end of the movement. Great for rear delts and rotator cuff health.' },
+  { name:'Overhead Press', category:'Shoulders', muscle:'Anterior & Lateral Deltoids', equipment:'Barbell', howto:'Stand with barbell at shoulder height, grip slightly wider than shoulders. Press the bar overhead until arms are fully extended, then lower back to shoulders.' },
+  { name:'Dumbbell Shoulder Press', category:'Shoulders', muscle:'Deltoids', equipment:'Dumbbells', howto:'Sit or stand with dumbbells at shoulder height, palms facing forward. Press both dumbbells overhead until arms are fully extended. Lower with control.' },
+  { name:'Lateral Raise', category:'Shoulders', muscle:'Lateral Deltoids', equipment:'Dumbbells', howto:'Stand holding dumbbells at your sides. Raise arms out to the sides until they reach shoulder height, with a slight bend in elbows. Lower slowly.' },
+  { name:'Front Raise', category:'Shoulders', muscle:'Anterior Deltoids', equipment:'Dumbbells', howto:'Stand holding dumbbells in front of your thighs. Raise one or both arms forward to shoulder height. Lower with control.' },
+  { name:'Arnold Press', category:'Shoulders', muscle:'All Three Deltoid Heads', equipment:'Dumbbells', howto:'Start with dumbbells at chin level, palms facing you. As you press up, rotate your palms to face forward. Reverse the motion on the way down.' },
+  { name:'Upright Row', category:'Shoulders', muscle:'Traps & Lateral Deltoids', equipment:'Barbell', howto:'Hold bar with a narrow overhand grip. Pull the bar straight up toward your chin, leading with your elbows. Lower back down with control.' },
+  { name:'Shrugs', category:'Shoulders', muscle:'Trapezius', equipment:'Barbell', howto:'Hold barbell in front of you with arms straight. Shrug your shoulders straight up as high as possible. Hold briefly at the top, then lower slowly.' },
+  { name:'Barbell Curl', category:'Biceps', muscle:'Biceps Brachii', equipment:'Barbell', howto:'Stand holding a barbell with an underhand grip, shoulder-width apart. Curl the bar up toward your chest by bending your elbows. Keep upper arms still. Lower slowly.' },
+  { name:'Dumbbell Curl', category:'Biceps', muscle:'Biceps Brachii', equipment:'Dumbbells', howto:'Stand with dumbbells at your sides, palms facing forward. Curl one or both dumbbells up, rotating your wrist as you lift. Lower slowly.' },
+  { name:'Hammer Curl', category:'Biceps', muscle:'Brachialis & Brachioradialis', equipment:'Dumbbells', howto:'Hold dumbbells with a neutral grip (palms facing each other). Curl both dumbbells up without rotating your wrists. Targets the brachialis and forearms.' },
+  { name:'Preacher Curl', category:'Biceps', muscle:'Biceps Brachii', equipment:'Barbell', howto:'Sit at a preacher bench with your upper arms flat on the pad. Curl the bar up then lower fully to stretch the bicep. Eliminates cheating.' },
+  { name:'Cable Curl', category:'Biceps', muscle:'Biceps Brachii', equipment:'Cable Machine', howto:'Attach a straight bar to a low cable. Curl the bar up toward your shoulders keeping elbows pinned at your sides. Lower slowly.' },
+  { name:'Concentration Curl', category:'Biceps', muscle:'Biceps Brachii', equipment:'Dumbbells', howto:'Sit on a bench and rest your elbow on the inside of your thigh. Curl the dumbbell up toward your chest. Isolates the bicep peak.' },
+  { name:'Tricep Pushdown', category:'Triceps', muscle:'Triceps Brachii', equipment:'Cable Machine', howto:'Stand at a high cable with a rope or bar attachment. Keep your elbows pinned at your sides and push the attachment down until arms are fully extended. Control the return.' },
+  { name:'Skull Crushers', category:'Triceps', muscle:'Triceps Brachii', equipment:'Barbell', howto:'Lie on a bench, hold bar above your chest with arms extended. Lower the bar toward your forehead by bending elbows. Press back up. Keep upper arms vertical.' },
+  { name:'Overhead Tricep Extension', category:'Triceps', muscle:'Long Head of Triceps', equipment:'Dumbbells', howto:'Hold a dumbbell overhead with both hands. Lower it behind your head by bending elbows. Press back up to the start. Stretches the long head effectively.' },
+  { name:'Close-Grip Bench Press', category:'Triceps', muscle:'Triceps Brachii', equipment:'Barbell', howto:'Lie on bench with hands about shoulder-width apart on the bar. Lower bar to your chest, then press up. Narrower grip shifts emphasis to triceps.' },
+  { name:'Dips (Triceps)', category:'Triceps', muscle:'Triceps Brachii', equipment:'Dip Bars', howto:'Grip bars and keep your body upright (no forward lean). Lower yourself until elbows reach 90°, press back up. Upright torso targets triceps.' },
+  { name:'Diamond Push-Up', category:'Triceps', muscle:'Triceps Brachii', equipment:'Bodyweight', howto:'Form a diamond shape with your index fingers and thumbs on the floor. Perform a push-up in this position. Places maximum emphasis on triceps.' },
+  { name:'Barbell Squat', category:'Quads', muscle:'Quadriceps & Glutes', equipment:'Barbell', howto:'Bar on upper back, feet shoulder-width apart, toes slightly out. Squat down until thighs are parallel or below, keeping chest up and knees tracking over toes. Drive back up.' },
+  { name:'Front Squat', category:'Quads', muscle:'Quadriceps', equipment:'Barbell', howto:'Rest bar on front deltoids with elbows high. Squat down keeping torso very upright. More quad-dominant than back squat.' },
+  { name:'Leg Press', category:'Quads', muscle:'Quadriceps & Glutes', equipment:'Machine', howto:'Sit in the machine with feet on platform shoulder-width apart. Lower the platform until knees reach 90°. Press back up without locking knees at the top.' },
+  { name:'Leg Extension', category:'Quads', muscle:'Quadriceps', equipment:'Machine', howto:'Sit in the machine with ankles under the pad. Extend your legs until straight, squeeze quads at the top. Lower slowly.' },
+  { name:'Hack Squat', category:'Quads', muscle:'Quadriceps', equipment:'Machine', howto:'Position shoulders under the pads. Lower until knees are at 90°, then press back up. Targets the outer quad sweep.' },
+  { name:'Bulgarian Split Squat', category:'Quads', muscle:'Quads & Glutes', equipment:'Dumbbells', howto:'Rear foot elevated on a bench, front foot forward. Lower your rear knee toward the floor. Drive back up through your front heel.' },
+  { name:'Romanian Deadlift', category:'Hamstrings', muscle:'Hamstrings & Glutes', equipment:'Barbell', howto:'Stand holding bar, hinge at hips pushing them back while lowering bar along your legs. Keep back flat. Feel stretch in hamstrings, then drive hips forward to stand.' },
+  { name:'Leg Curl', category:'Hamstrings', muscle:'Hamstrings', equipment:'Machine', howto:'Lie face down on the machine with ankles under the pad. Curl your legs toward your glutes. Squeeze at the top and lower slowly.' },
+  { name:'Stiff-Leg Deadlift', category:'Hamstrings', muscle:'Hamstrings', equipment:'Barbell', howto:'Similar to Romanian deadlift but with less knee bend. Hinge at hips, keeping legs nearly straight to maximize hamstring stretch.' },
+  { name:'Hip Thrust', category:'Glutes', muscle:'Gluteus Maximus', equipment:'Barbell', howto:'Sit against a bench with bar across your hips. Drive your hips up until your body is in a straight line from knees to shoulders. Squeeze glutes at the top.' },
+  { name:'Glute Bridge', category:'Glutes', muscle:'Gluteus Maximus', equipment:'Bodyweight', howto:'Lie on your back, feet flat on the floor. Drive your hips up by squeezing your glutes. Hold briefly at the top and lower.' },
+  { name:'Cable Kickback', category:'Glutes', muscle:'Gluteus Maximus', equipment:'Cable Machine', howto:'Attach an ankle strap to a low cable. Hinge forward slightly and kick your leg back and up, squeezing your glute at the top.' },
+  { name:'Standing Calf Raise', category:'Calves', muscle:'Gastrocnemius', equipment:'Machine', howto:'Stand on a calf raise machine with shoulders under pads. Rise up on your toes as high as possible. Lower your heels below the platform for a full stretch.' },
+  { name:'Seated Calf Raise', category:'Calves', muscle:'Soleus', equipment:'Machine', howto:'Sit in the machine with pads on your knees. Raise your heels as high as possible. Lower slowly for a full stretch. Seated position isolates the soleus.' },
+  { name:'Plank', category:'Core', muscle:'Transverse Abdominis', equipment:'Bodyweight', howto:'Start in a forearm plank with elbows under shoulders. Keep your body in a straight line from head to heels. Brace your core and hold.' },
+  { name:'Crunches', category:'Core', muscle:'Rectus Abdominis', equipment:'Bodyweight', howto:'Lie on your back with knees bent. Place hands behind your head. Curl your upper back off the floor by contracting your abs. Lower slowly.' },
+  { name:'Leg Raise', category:'Core', muscle:'Lower Abs', equipment:'Bodyweight', howto:'Lie flat on your back. Keeping legs straight, raise them to 90° then lower slowly without letting them touch the floor. Keep lower back pressed down.' },
+  { name:'Cable Crunch', category:'Core', muscle:'Rectus Abdominis', equipment:'Cable Machine', howto:'Kneel below a high cable. Grip the rope behind your head. Crunch down toward the floor by contracting your abs. Do not pull with your arms.' },
+  { name:'Russian Twist', category:'Core', muscle:'Obliques', equipment:'Bodyweight', howto:'Sit with knees bent and feet off the floor. Rotate your torso side to side. Add a weight plate or dumbbell for more resistance.' },
+  { name:'Ab Wheel Rollout', category:'Core', muscle:'Full Core', equipment:'Ab Wheel', howto:'Kneel on the floor gripping an ab wheel. Roll forward as far as you can while keeping your core braced. Pull back to the start.' },
+  { name:'Hanging Leg Raise', category:'Core', muscle:'Lower Abs & Hip Flexors', equipment:'Pull-Up Bar', howto:'Hang from a bar with straight arms. Raise your legs until they are parallel to the floor (or higher). Lower slowly.' },
+  { name:'Treadmill Run', category:'Cardio', muscle:'Full Body', equipment:'Treadmill', howto:'Set a comfortable pace and incline. Maintain an upright posture, relax your shoulders, and land midfoot. Build duration and intensity gradually.' },
+  { name:'Rowing Machine', category:'Cardio', muscle:'Full Body', equipment:'Rowing Machine', howto:'Push with your legs first, then lean back slightly and pull the handle to your lower chest. Return in reverse order: arms, body, legs. Each stroke should be smooth.' },
+  { name:'Jump Rope', category:'Cardio', muscle:'Full Body', equipment:'Jump Rope', howto:'Keep elbows close to your sides and rotate the rope with your wrists. Jump just high enough to clear the rope. Stay on the balls of your feet.' },
+  { name:'Cycling', category:'Cardio', muscle:'Legs & Cardio', equipment:'Stationary Bike', howto:'Set seat height so your knee is slightly bent at the bottom of the pedal stroke. Maintain a steady cadence and adjust resistance to your fitness level.' },
+  { name:'Stairmaster', category:'Cardio', muscle:'Legs & Glutes', equipment:'Stairmaster', howto:'Step at a steady pace without leaning heavily on the rails. Keep your back straight and take full steps. Great for glutes and cardio.' },
+  { name:'Battle Ropes', category:'Cardio', muscle:'Upper Body & Core', equipment:'Battle Ropes', howto:'Hold one rope in each hand. Alternate raising and lowering arms rapidly to create waves. Keep your core tight and knees slightly bent.' },
+];
+
+const ALL_CATEGORIES = [...new Set(EXERCISE_LIBRARY.map(e => e.category))];
+let libActiveCat = 'All';
+let libSelectedEx = null;
+let exCurrentTab = 'library';
+
+function switchExTab(tab) {
+  exCurrentTab = tab;
+  document.getElementById('ex-panel-library').style.display = tab==='library'?'block':'none';
+  document.getElementById('ex-panel-manual').style.display = tab==='manual'?'block':'none';
+  document.getElementById('ex-tab-library').style.borderBottomColor = tab==='library'?'#fff':'transparent';
+  document.getElementById('ex-tab-library').style.color = tab==='library'?'#fff':'var(--text3)';
+  document.getElementById('ex-tab-manual').style.borderBottomColor = tab==='manual'?'#fff':'transparent';
+  document.getElementById('ex-tab-manual').style.color = tab==='manual'?'#fff':'var(--text3)';
+}
+
+function renderLibraryCatFilters() {
+  const wrap = document.getElementById('lib-cat-filters');
+  const cats = ['All', ...ALL_CATEGORIES];
+  wrap.innerHTML = cats.map(c => `
+    <button onclick="setCat('${c}')" style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:20px;border:1px solid ${libActiveCat===c?'rgba(255,255,255,0.5)':'var(--border2)'};background:${libActiveCat===c?'rgba(255,255,255,0.1)':'transparent'};color:${libActiveCat===c?'#fff':'var(--text3)'};cursor:pointer;transition:all 0.2s">${c}</button>
+  `).join('');
+}
+
+function setCat(cat) { libActiveCat=cat; renderLibraryCatFilters(); filterLibrary(); }
+
+function filterLibrary() {
+  const q = (document.getElementById('lib-search').value||'').toLowerCase();
+  let items = EXERCISE_LIBRARY;
+  if (libActiveCat!=='All') items = items.filter(e=>e.category===libActiveCat);
+  if (q) items = items.filter(e=>e.name.toLowerCase().includes(q)||e.muscle.toLowerCase().includes(q));
+  const list = document.getElementById('lib-list');
+  if (items.length===0) { list.innerHTML=`<div class="text-center text-muted" style="padding:20px 0">No exercises found.</div>`; return; }
+  const grouped={};
+  items.forEach(e=>{if(!grouped[e.category])grouped[e.category]=[];grouped[e.category].push(e);});
+  list.innerHTML = Object.entries(grouped).map(([cat,exs])=>`
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;padding:10px 0 4px">${cat}</div>
+    ${exs.map(ex=>`
+      <div onclick="openExDetail('${ex.name.replace(/'/g,"\\'")}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+        <div>
+          <div style="font-size:14px;font-weight:500">${ex.name}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${ex.muscle} · ${ex.equipment}</div>
+        </div>
+        <span style="color:var(--text3);font-size:18px">›</span>
+      </div>
+    `).join('')}
+  `).join('');
+}
+
+function openExDetail(name) {
+  const ex = EXERCISE_LIBRARY.find(e=>e.name===name);
+  if (!ex) return;
+  libSelectedEx = ex;
+  document.getElementById('exd-name').textContent = ex.name;
+  document.getElementById('exd-muscle').textContent = ex.muscle;
+  document.getElementById('exd-equipment').textContent = '🏋️ '+ex.equipment;
+  document.getElementById('exd-category').textContent = ex.category;
+  document.getElementById('exd-howto').textContent = ex.howto;
+  document.getElementById('ex-detail-modal').classList.add('active');
+}
+
+function closeExDetail() { document.getElementById('ex-detail-modal').classList.remove('active'); }
+
+async function addExFromLibrary() {
+  if (!libSelectedEx) return;
+  const sp = splits[currentSplitIdx];
+  if (!sp.dayExercises) sp.dayExercises = sp.days.map(()=>[]);
+  sp.dayExercises[currentDayIdx].push({ name: libSelectedEx.name, sets: [] });
+  await saveToServer();
+  closeExDetail();
+  closeAddExModal();
+  renderExercises();
 }
 
 load();
