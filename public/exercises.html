@@ -1517,17 +1517,39 @@ async function saveEditDays() {
   if (newDays.length === 0) { showMsg(msg, 'Select at least one day.'); return; }
 
   const sp = splits[editDaysSplitIdx];
-  const oldDays = sp.days;
+  const snapshot = JSON.parse(JSON.stringify(sp));
+  const oldDays = snapshot.days;
+  const oldDayExercises = snapshot.dayExercises || oldDays.map(() => []);
 
-  // Preserve existing exercises for days that still exist, add empty arrays for new days
-  const newDayExercises = newDays.map(day => {
+  // Strategy: match by position for days that changed name, match by name for days that stayed
+  // Days kept = in both old and new; Days removed = in old not new; Days added = in new not old
+  const keptOldIndices = new Set();
+  const newDayExercises = newDays.map((day, ni) => {
+    // First try exact name match
     const oldIdx = oldDays.indexOf(day);
-    return oldIdx !== -1 ? (sp.dayExercises?.[oldIdx] || []) : [];
+    if (oldIdx !== -1) {
+      keptOldIndices.add(oldIdx);
+      return oldDayExercises[oldIdx];
+    }
+    return null; // placeholder for new/changed days
   });
 
-  // Update history dayLabels aren't affected — they store the day name string
-  sp.days = newDays;
-  sp.dayExercises = newDayExercises;
+  // For slots that didn't match by name, fill with exercises from old days that weren't matched
+  const unusedOldExercises = oldDayExercises.filter((_, i) => !keptOldIndices.has(i));
+  let unusedIdx = 0;
+  for (let i = 0; i < newDayExercises.length; i++) {
+    if (newDayExercises[i] === null) {
+      // Carry over exercises from next unused old day (in case day was renamed)
+      newDayExercises[i] = unusedOldExercises[unusedIdx] || [];
+      unusedIdx++;
+    }
+  }
+
+  splits[editDaysSplitIdx] = {
+    ...snapshot,
+    days: newDays,
+    dayExercises: newDayExercises
+  };
 
   await saveToServer();
   closeEditDays();
