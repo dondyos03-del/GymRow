@@ -98,10 +98,43 @@
   <div id="splits-view">
     <div class="top-bar">
       <a href="home.html" class="back-btn">← Back</a>
-      <div class="top-bar-title">My Splits</div>
-      <button class="btn btn-sm btn-secondary" onclick="openNewSplit()">+ Split</button>
+      <div class="top-bar-title">Exercises</div>
+      <button class="btn btn-sm btn-secondary" id="main-action-btn" onclick="openNewSplit()">+ Split</button>
     </div>
-    <div id="splits-list" class="splits-list mt-16 fade-in"></div>
+
+    <!-- Main tabs -->
+    <div style="display:flex;border-bottom:1px solid var(--border);margin:8px 20px 0">
+      <div id="main-tab-splits" onclick="switchMainTab('splits')"
+        style="flex:1;text-align:center;padding:11px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid #fff;color:#fff;transition:all 0.2s">
+        My Splits
+      </div>
+      <div id="main-tab-myex" onclick="switchMainTab('myex')"
+        style="flex:1;text-align:center;padding:11px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);transition:all 0.2s">
+        My Exercises
+      </div>
+      <div id="main-tab-library" onclick="switchMainTab('library')"
+        style="flex:1;text-align:center;padding:11px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);transition:all 0.2s">
+        Library
+      </div>
+    </div>
+
+    <!-- SPLITS PANEL -->
+    <div id="panel-splits">
+      <div id="splits-list" class="splits-list mt-16 fade-in"></div>
+    </div>
+
+    <!-- MY EXERCISES PANEL -->
+    <div id="panel-myex" style="display:none;padding:16px 20px 30px">
+      <p style="font-size:12px;color:var(--text3);margin-bottom:14px;letter-spacing:0.5px">Exercises you've logged across all splits — sorted by performance.</p>
+      <div id="myex-list"></div>
+    </div>
+
+    <!-- LIBRARY PANEL -->
+    <div id="panel-library" style="display:none;padding:16px 20px 0">
+      <input type="text" id="main-lib-search" placeholder="Search exercises..." oninput="filterMainLibrary()" style="margin-bottom:10px" />
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="main-lib-cats"></div>
+      <div id="main-lib-list" style="padding-bottom:30px"></div>
+    </div>
   </div>
 
   <!-- DAY VIEW -->
@@ -195,6 +228,22 @@
     </div>
   </div>
 
+  <!-- EDIT DAYS MODAL -->
+  <div class="modal-overlay" id="edit-days-modal">
+    <div class="modal">
+      <div class="modal-title" id="edit-days-title">Edit Days</div>
+      <div class="form-group">
+        <label>Select Days</label>
+        <div id="edit-days-picker" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+      </div>
+      <div id="edit-days-msg" class="msg" style="display:none;margin:0 0 12px"></div>
+      <div class="flex-row mt-16">
+        <button class="btn btn-secondary" onclick="closeEditDays()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEditDays()">Save</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ADD EXERCISE MODAL -->
   <div class="modal-overlay" id="add-ex-modal">
     <div class="modal" style="max-height:85vh;overflow-y:auto">
@@ -239,7 +288,7 @@
 
   <!-- EXERCISE DETAIL MODAL (from library) -->
   <div class="modal-overlay" id="ex-detail-modal">
-    <div class="modal">
+    <div class="modal" style="max-height:85vh;overflow-y:auto">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
         <div>
           <div class="modal-title" id="exd-name" style="margin-bottom:4px"></div>
@@ -252,7 +301,26 @@
         <span id="exd-category" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;color:var(--text2)"></span>
       </div>
       <div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:20px;background:var(--bg3);border-radius:8px;padding:14px" id="exd-howto"></div>
-      <button class="btn btn-primary" onclick="addExFromLibrary()">+ Add to Workout</button>
+
+      <!-- Split + Day picker -->
+      <div id="exd-split-picker" style="display:none">
+        <div class="divider"></div>
+        <div style="margin:14px 0 8px">
+          <label>Add to Split</label>
+          <select id="exd-split-select" onchange="updateExdDays()" style="margin-top:8px">
+            <option value="">— Select Split —</option>
+          </select>
+        </div>
+        <div id="exd-day-wrap" style="display:none;margin-bottom:4px">
+          <label>Day</label>
+          <select id="exd-day-select" style="margin-top:8px">
+            <option value="">— Select Day —</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="exd-add-msg" class="msg" style="display:none;margin:12px 0 0"></div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="addExFromLibrary()">+ Add to Workout</button>
     </div>
   </div>
 
@@ -405,7 +473,8 @@ function renderSplits() {
           <div class="split-name">${sp.name}</div>
           <div class="split-meta">${sp.days.length} day${sp.days.length!==1?'s':''} · ${sp.days.map(d=>d.slice(0,3)).join(', ')}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();openEditDays(${si})">Edit Days</button>
           <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteSplit(${si})">Delete</button>
           <span class="split-chevron" id="chev-${si}">›</span>
         </div>
@@ -1031,6 +1100,217 @@ async function saveToServer() {
   if (data.user) { userData = data.user; setSession(data.user); }
 }
 
+// ── MAIN TAB SWITCHER ──
+let mainTab = 'splits';
+let mainLibCat = 'All';
+
+function switchMainTab(tab) {
+  mainTab = tab;
+  document.getElementById('panel-splits').style.display = tab==='splits'?'block':'none';
+  document.getElementById('panel-myex').style.display = tab==='myex'?'block':'none';
+  document.getElementById('panel-library').style.display = tab==='library'?'block':'none';
+
+  ['splits','myex','library'].forEach(t => {
+    const el = document.getElementById(`main-tab-${t}`);
+    if (!el) return;
+    el.style.borderBottomColor = tab===t ? '#fff' : 'transparent';
+    el.style.color = tab===t ? '#fff' : 'var(--text3)';
+  });
+
+  document.getElementById('main-action-btn').style.display = tab==='splits'?'block':'none';
+
+  // Always re-render when switching to these tabs
+  if (tab==='library') {
+    renderMainLibraryCats();
+    filterMainLibrary();
+  }
+  if (tab==='myex') renderMyExercises();
+}
+
+// ── MY EXERCISES ──
+function renderMyExercises() {
+  const list = document.getElementById('myex-list');
+  const weightUnit = userData?.weightUnit || 'kg';
+
+  // Collect all exercise performance data across all splits and sessions
+  const exMap = {}; // name -> { sessions: [], bestWeight, totalSets, totalVolume }
+
+  splits.forEach(sp => {
+    (sp.history || []).forEach(session => {
+      session.exercises.forEach(ex => {
+        const validSets = (ex.sets || []).filter(s => parseFloat(s.weight) > 0 || parseFloat(s.reps) > 0);
+        if (validSets.length === 0) return;
+        if (!exMap[ex.name]) exMap[ex.name] = { name: ex.name, sessions: [], allSets: [] };
+        const maxSet = validSets.filter(s => parseFloat(s.weight) > 0)
+          .reduce((b, s) => parseFloat(s.weight) > parseFloat(b.weight||0) ? s : b, { weight: 0 });
+        exMap[ex.name].sessions.push({
+          date: session.date,
+          splitName: sp.name,
+          dayLabel: session.dayLabel,
+          sets: validSets,
+          maxWeight: parseFloat(maxSet.weight) || 0,
+          maxUnit: maxSet.unit || weightUnit
+        });
+        exMap[ex.name].allSets.push(...validSets);
+      });
+    });
+  });
+
+  const exercises = Object.values(exMap);
+
+  if (exercises.length === 0) {
+    list.innerHTML = `<div class="text-center text-muted" style="padding:40px 0">No exercise data yet.<br>Complete a session to see your performance here.</div>`;
+    return;
+  }
+
+  // Sort by most sessions
+  exercises.sort((a, b) => b.sessions.length - a.sessions.length);
+
+  list.innerHTML = exercises.map(ex => {
+    const allWeights = ex.sessions.map(s => s.maxWeight).filter(w => w > 0);
+    const bestWeight = allWeights.length > 0 ? Math.max(...allWeights) : 0;
+    const bestSession = ex.sessions.find(s => s.maxWeight === bestWeight);
+    const totalSets = ex.allSets.length;
+    const totalVol = ex.allSets.reduce((s, set) => s + (parseFloat(set.reps)||0) * (parseFloat(set.weight)||0), 0);
+    const lastSession = ex.sessions[ex.sessions.length - 1];
+    const prevSession = ex.sessions.length > 1 ? ex.sessions[ex.sessions.length - 2] : null;
+    let trend = null;
+    if (lastSession && prevSession && prevSession.maxWeight > 0) {
+      trend = (((lastSession.maxWeight - prevSession.maxWeight) / prevSession.maxWeight) * 100).toFixed(1);
+    }
+
+    return `
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;letter-spacing:1px;font-weight:600">${ex.name}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">${ex.sessions.length} session${ex.sessions.length!==1?'s':''} · ${totalSets} total sets</div>
+          </div>
+          ${trend !== null ? `
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:1px;color:${parseFloat(trend)>=0?'#2ecc71':'#ff3b3b'}">
+              ${parseFloat(trend)>=0?'↑':'↓'} ${Math.abs(trend)}%
+            </div>` : ''}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px">${bestWeight > 0 ? bestWeight + ' ' + (bestSession?.maxUnit||weightUnit) : '—'}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Best Weight</div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px">${lastSession?.maxWeight > 0 ? lastSession.maxWeight + ' ' + (lastSession.maxUnit||weightUnit) : '—'}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Last Session</div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px">${totalVol > 0 ? Math.round(totalVol) : '—'}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:2px">Total Volume</div>
+          </div>
+        </div>
+        <!-- Session history for this exercise -->
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:6px">History</div>
+        ${ex.sessions.slice().reverse().slice(0,5).map(s => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <div>
+              <span style="color:var(--text2)">${s.date}</span>
+              <span style="color:var(--text3);margin-left:6px">${s.splitName} · ${s.dayLabel}</span>
+            </div>
+            <div style="color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:1px">
+              ${s.sets.map(set=>`${set.reps}×${set.weight}${set.unit||weightUnit}`).join(', ')}
+            </div>
+          </div>
+        `).join('')}
+        ${ex.sessions.length > 5 ? `<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center">+${ex.sessions.length-5} more sessions</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderMainLibraryCats() {
+  const cats = ['All', ...ALL_CATEGORIES];
+  document.getElementById('main-lib-cats').innerHTML = cats.map(c => `
+    <button onclick="setMainCat('${c}')" style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:20px;border:1px solid ${mainLibCat===c?'rgba(255,255,255,0.5)':'var(--border2)'};background:${mainLibCat===c?'rgba(255,255,255,0.1)':'transparent'};color:${mainLibCat===c?'#fff':'var(--text3)'};cursor:pointer;transition:all 0.2s">${c}</button>
+  `).join('');
+}
+
+function setMainCat(cat) { mainLibCat=cat; renderMainLibraryCats(); filterMainLibrary(); }
+
+function filterMainLibrary() {
+  const q = (document.getElementById('main-lib-search')?.value||'').toLowerCase();
+  let items = EXERCISE_LIBRARY;
+  if (mainLibCat!=='All') items = items.filter(e=>e.category===mainLibCat);
+  if (q) items = items.filter(e=>e.name.toLowerCase().includes(q)||e.muscle.toLowerCase().includes(q));
+  const list = document.getElementById('main-lib-list');
+  if (!list) return;
+  if (items.length===0) { list.innerHTML=`<div class="text-center text-muted" style="padding:20px 0">No exercises found.</div>`; return; }
+  const grouped={};
+  items.forEach(e=>{if(!grouped[e.category])grouped[e.category]=[];grouped[e.category].push(e);});
+  list.innerHTML = Object.entries(grouped).map(([cat,exs])=>`
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;padding:10px 0 4px">${cat}</div>
+    ${exs.map(ex=>`
+      <div onclick="openExDetail(this.getAttribute('data-name'))" data-name="${ex.name.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+        <div style="pointer-events:none">
+          <div style="font-size:14px;font-weight:500">${ex.name}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${ex.muscle} · ${ex.equipment}</div>
+        </div>
+        <span style="pointer-events:none;color:var(--text3);font-size:18px">›</span>
+      </div>
+    `).join('')}
+  `).join('');
+}
+
+// ── EDIT DAYS ──
+let editDaysSplitIdx = null;
+
+function openEditDays(si) {
+  editDaysSplitIdx = si;
+  const sp = splits[si];
+  document.getElementById('edit-days-title').textContent = `Edit Days — ${sp.name}`;
+  document.getElementById('edit-days-msg').style.display = 'none';
+  const picker = document.getElementById('edit-days-picker');
+  picker.innerHTML = DAYS.map(d => {
+    const isSelected = sp.days.includes(d);
+    return `
+      <button type="button" onclick="toggleEditDay(this)" data-day="${d}" data-active="${isSelected}"
+        style="background:${isSelected?'rgba(255,255,255,0.15)':'var(--bg3)'};border:1px solid ${isSelected?'rgba(255,255,255,0.5)':'var(--border2)'};border-radius:6px;color:${isSelected?'#fff':'var(--text2)'};
+               font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;padding:7px 14px;cursor:pointer;text-transform:uppercase;transition:all 0.15s">
+        ${d.slice(0,3)}
+      </button>`;
+  }).join('');
+  document.getElementById('edit-days-modal').classList.add('active');
+}
+
+function toggleEditDay(btn) {
+  const active = btn.getAttribute('data-active') === 'true';
+  btn.setAttribute('data-active', String(!active));
+  btn.style.background = !active ? 'rgba(255,255,255,0.15)' : 'var(--bg3)';
+  btn.style.borderColor = !active ? 'rgba(255,255,255,0.5)' : 'var(--border2)';
+  btn.style.color = !active ? '#fff' : 'var(--text2)';
+}
+
+function closeEditDays() { document.getElementById('edit-days-modal').classList.remove('active'); }
+
+async function saveEditDays() {
+  const msg = document.getElementById('edit-days-msg');
+  const newDays = DAYS.filter(d => document.querySelector(`#edit-days-picker button[data-day="${d}"][data-active="true"]`));
+  if (newDays.length === 0) { showMsg(msg, 'Select at least one day.'); return; }
+
+  const sp = splits[editDaysSplitIdx];
+  const oldDays = sp.days;
+
+  // Preserve existing exercises for days that still exist, add empty arrays for new days
+  const newDayExercises = newDays.map(day => {
+    const oldIdx = oldDays.indexOf(day);
+    return oldIdx !== -1 ? (sp.dayExercises?.[oldIdx] || []) : [];
+  });
+
+  // Update history dayLabels aren't affected — they store the day name string
+  sp.days = newDays;
+  sp.dayExercises = newDayExercises;
+
+  await saveToServer();
+  closeEditDays();
+  renderSplits();
+}
+
 // ── EXERCISE LIBRARY ──
 const EXERCISE_LIBRARY = [
   { name:'Bench Press', category:'Chest', muscle:'Pectoralis Major', equipment:'Barbell', howto:'Lie flat on a bench. Grip the barbell slightly wider than shoulder-width. Lower the bar to your mid-chest with control, then press back up explosively. Keep your feet flat on the floor and back slightly arched.' },
@@ -1135,16 +1415,18 @@ function filterLibrary() {
   list.innerHTML = Object.entries(grouped).map(([cat,exs])=>`
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;padding:10px 0 4px">${cat}</div>
     ${exs.map(ex=>`
-      <div onclick="openExDetail('${ex.name.replace(/'/g,"\\'")}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-        <div>
+      <div onclick="openExDetail(this.getAttribute('data-name'))" data-name="${ex.name.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+        <div style="pointer-events:none">
           <div style="font-size:14px;font-weight:500">${ex.name}</div>
           <div style="font-size:11px;color:var(--text3);margin-top:2px">${ex.muscle} · ${ex.equipment}</div>
         </div>
-        <span style="color:var(--text3);font-size:18px">›</span>
+        <span style="pointer-events:none;color:var(--text3);font-size:18px">›</span>
       </div>
     `).join('')}
   `).join('');
 }
+
+let exDetailFromMainLibrary = false;
 
 function openExDetail(name) {
   const ex = EXERCISE_LIBRARY.find(e=>e.name===name);
@@ -1155,20 +1437,107 @@ function openExDetail(name) {
   document.getElementById('exd-equipment').textContent = '🏋️ '+ex.equipment;
   document.getElementById('exd-category').textContent = ex.category;
   document.getElementById('exd-howto').textContent = ex.howto;
+
+  // Detect context by checking which view is currently visible
+  const dayViewVisible = document.getElementById('day-view').style.display !== 'none';
+  exDetailFromMainLibrary = !dayViewVisible;
+
+  // Always re-enable first
+  document.getElementById('exd-split-select').disabled = false;
+  document.getElementById('exd-day-select').disabled = false;
+
+  const picker = document.getElementById('exd-split-picker');
+  const addMsg = document.getElementById('exd-add-msg');
+  const splitSel = document.getElementById('exd-split-select');
+  const daySel = document.getElementById('exd-day-select');
+  addMsg.style.display = 'none';
+  picker.style.display = 'block';
+
+  if (exDetailFromMainLibrary) {
+    // Main library — editable dropdowns
+    if (splits.length === 0) {
+      splitSel.innerHTML = '<option value="">No splits yet — create one first</option>';
+      splitSel.disabled = true;
+    } else {
+      splitSel.innerHTML = '<option value="">— Select Split —</option>' +
+        splits.map((sp, si) => `<option value="${si}">${sp.name}</option>`).join('');
+      splitSel.disabled = false;
+    }
+    daySel.innerHTML = '<option value="">— Select Day —</option>';
+    daySel.disabled = false;
+    document.getElementById('exd-day-wrap').style.display = 'none';
+  } else {
+    // Inside a workout — show current split/day as readonly
+    const sp = splits[currentSplitIdx];
+    splitSel.innerHTML = `<option value="${currentSplitIdx}">${sp.name}</option>`;
+    daySel.innerHTML = `<option value="${currentDayIdx}">${sp.days[currentDayIdx]}</option>`;
+    document.getElementById('exd-day-wrap').style.display = 'block';
+    splitSel.disabled = true;
+    daySel.disabled = true;
+  }
+
   document.getElementById('ex-detail-modal').classList.add('active');
 }
 
-function closeExDetail() { document.getElementById('ex-detail-modal').classList.remove('active'); }
+function updateExdDays() {
+  const si = parseInt(document.getElementById('exd-split-select').value);
+  const dayWrap = document.getElementById('exd-day-wrap');
+  const daySel = document.getElementById('exd-day-select');
+  if (isNaN(si)) { dayWrap.style.display = 'none'; return; }
+  const sp = splits[si];
+  daySel.innerHTML = '<option value="">— Select Day —</option>' +
+    sp.days.map((d, di) => `<option value="${di}">${d}</option>`).join('');
+  dayWrap.style.display = 'block';
+}
+
+function closeExDetail() {
+  const splitSel = document.getElementById('exd-split-select');
+  const daySel = document.getElementById('exd-day-select');
+  splitSel.disabled = false;
+  daySel.disabled = false;
+  splitSel.innerHTML = '<option value="">— Select Split —</option>';
+  daySel.innerHTML = '<option value="">— Select Day —</option>';
+  document.getElementById('exd-day-wrap').style.display = 'none';
+  document.getElementById('exd-add-msg').style.display = 'none';
+  document.getElementById('ex-detail-modal').classList.remove('active');
+}
 
 async function addExFromLibrary() {
   if (!libSelectedEx) return;
-  const sp = splits[currentSplitIdx];
-  if (!sp.dayExercises) sp.dayExercises = sp.days.map(()=>[]);
-  sp.dayExercises[currentDayIdx].push({ name: libSelectedEx.name, sets: [] });
-  await saveToServer();
-  closeExDetail();
-  closeAddExModal();
-  renderExercises();
+  const msg = document.getElementById('exd-add-msg');
+  msg.style.display = 'none';
+
+  const si = parseInt(document.getElementById('exd-split-select').value);
+  const di = parseInt(document.getElementById('exd-day-select').value);
+
+  if (exDetailFromMainLibrary) {
+    if (isNaN(si)) { showMsg(msg, 'Please select a split.'); return; }
+    if (isNaN(di)) { showMsg(msg, 'Please select a day.'); return; }
+    const sp = splits[si];
+    if (!sp.dayExercises) sp.dayExercises = sp.days.map(()=>[]);
+    if (sp.dayExercises[di].find(e => e.name === libSelectedEx.name)) {
+      showMsg(msg, `⚠️ ${libSelectedEx.name} is already in ${sp.name} · ${sp.days[di]}.`);
+      msg.style.display = 'block';
+      return;
+    }
+    sp.dayExercises[di].push({ name: libSelectedEx.name, sets: [] });
+    await saveToServer();
+    showMsg(msg, `✓ Added to ${sp.name} · ${sp.days[di]}`, 'success');
+    msg.style.display = 'block';
+    setTimeout(() => { if (msg.classList.contains('success')) msg.style.display = 'none'; }, 2500);
+  } else {
+    // Inside a workout — use currentSplitIdx and currentDayIdx directly
+    const sp = splits[currentSplitIdx];
+    if (!sp.dayExercises) sp.dayExercises = sp.days.map(()=>[]);
+    if (sp.dayExercises[currentDayIdx].find(e => e.name === libSelectedEx.name)) {
+      showMsg(msg, `${libSelectedEx.name} is already in this day.`); return;
+    }
+    sp.dayExercises[currentDayIdx].push({ name: libSelectedEx.name, sets: [] });
+    await saveToServer();
+    closeExDetail();
+    closeAddExModal();
+    renderExercises();
+  }
 }
 
 load();
