@@ -94,6 +94,30 @@
     .disconnect-row { display:flex; align-items:center; justify-content:space-between; padding:0 20px; margin-bottom:24px; }
     .disconnect-info { font-size:12px; color:var(--text3); }
     .disconnect-info strong { color:var(--text2); font-family:'Barlow Condensed',sans-serif; letter-spacing:1px; }
+
+    /* Comparison section */
+    .comp-tabs { display:flex; gap:8px; padding:0 20px; margin-bottom:12px; }
+    .comp-tab { font-family:'Barlow Condensed',sans-serif; font-size:12px; letter-spacing:2px; text-transform:uppercase; padding:6px 14px; border-radius:20px; border:1px solid var(--border2); color:var(--text3); background:transparent; cursor:pointer; transition:all 0.2s; }
+    .comp-tab.active { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.4); color:#fff; }
+
+    .comp-metric-tabs { display:flex; gap:6px; padding:0 20px; margin-bottom:14px; flex-wrap:wrap; }
+    .comp-metric-tab { font-family:'Barlow Condensed',sans-serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding:4px 10px; border-radius:4px; border:1px solid var(--border); color:var(--text3); background:transparent; cursor:pointer; transition:all 0.2s; }
+    .comp-metric-tab.active { border-color:rgba(255,255,255,0.5); color:#fff; background:rgba(255,255,255,0.07); }
+
+    .comp-chart-wrap { padding:0 20px; margin-bottom:12px; }
+    .comp-bars { display:flex; align-items:flex-end; gap:4px; height:80px; }
+    .comp-bar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .comp-bar { width:100%; border-radius:3px 3px 0 0; min-height:3px; transition:height 0.4s ease; position:relative; }
+    .comp-bar-val { font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:1px; color:var(--text2); text-align:center; }
+    .comp-bar-lbl { font-family:'Barlow Condensed',sans-serif; font-size:9px; letter-spacing:1px; color:var(--text3); text-align:center; margin-top:4px; white-space:nowrap; }
+
+    .comp-summary { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:0 20px; margin-bottom:20px; }
+    .comp-sum-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:12px; text-align:center; }
+    .comp-sum-val { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; line-height:1; }
+    .comp-sum-lbl { font-family:'Barlow Condensed',sans-serif; font-size:9px; letter-spacing:2px; color:var(--text3); text-transform:uppercase; margin-top:4px; }
+    .comp-trend { font-family:'Barlow Condensed',sans-serif; font-size:11px; letter-spacing:1px; margin-top:4px; }
+    .comp-trend.up { color:#2ecc71; }
+    .comp-trend.down { color:#ff3b3b; }
   </style>
 </head>
 <body>
@@ -252,6 +276,48 @@
           <span style="font-size:9px;color:var(--text3)">6PM</span>
           <span style="font-size:9px;color:var(--text3)">Now</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Comparison Section -->
+    <div class="section-lbl" style="margin-top:8px">Trends & Comparison</div>
+
+    <!-- Period tabs -->
+    <div class="comp-tabs">
+      <button class="comp-tab active" onclick="switchPeriod('week',this)">Weekly</button>
+      <button class="comp-tab" onclick="switchPeriod('month',this)">Monthly</button>
+      <button class="comp-tab" onclick="switchPeriod('year',this)">Yearly</button>
+    </div>
+
+    <!-- Metric tabs -->
+    <div class="comp-metric-tabs">
+      <button class="comp-metric-tab active" onclick="switchMetric('recovery',this)">Recovery</button>
+      <button class="comp-metric-tab" onclick="switchMetric('sleep',this)">Sleep</button>
+      <button class="comp-metric-tab" onclick="switchMetric('steps',this)">Steps</button>
+      <button class="comp-metric-tab" onclick="switchMetric('hr',this)">Heart Rate</button>
+      <button class="comp-metric-tab" onclick="switchMetric('cal',this)">Calories</button>
+    </div>
+
+    <!-- Bar chart -->
+    <div class="comp-chart-wrap">
+      <div class="comp-bars" id="comp-bars"></div>
+      <div style="display:flex;gap:4px;margin-top:2px" id="comp-bar-lbls"></div>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="comp-summary">
+      <div class="comp-sum-card">
+        <div class="comp-sum-val" id="comp-avg">—</div>
+        <div class="comp-sum-lbl">Avg</div>
+        <div class="comp-trend" id="comp-avg-trend"></div>
+      </div>
+      <div class="comp-sum-card">
+        <div class="comp-sum-val" id="comp-best">—</div>
+        <div class="comp-sum-lbl">Best</div>
+      </div>
+      <div class="comp-sum-card">
+        <div class="comp-sum-val" id="comp-worst">—</div>
+        <div class="comp-sum-lbl">Worst</div>
       </div>
     </div>
 
@@ -492,6 +558,7 @@ function showDataScreen(device) {
   document.getElementById('disconnect-device-name').textContent = device.name;
   document.getElementById('ring-label-text').textContent = device.ranges.ringLabel;
   renderData(device);
+  renderComparison();
 }
 
 function generateDemoData(device) {
@@ -620,7 +687,165 @@ function renderData(device) {
   } catch(e) {}
 }
 
-// ── INIT ──
+// ── COMPARISON SECTION ──
+let compPeriod = 'week';
+let compMetric = 'recovery';
+
+const METRIC_CONFIG = {
+  recovery: { label: 'Recovery', unit: '%', color: '#2ecc71', range: [30, 100] },
+  sleep:    { label: 'Sleep',    unit: 'h', color: '#6c63ff', range: [4, 10] },
+  steps:    { label: 'Steps',    unit: 'k', color: '#aac4ff', range: [2, 16] },
+  hr:       { label: 'Resting HR', unit: 'bpm', color: '#ff6b6b', range: [44, 80] },
+  cal:      { label: 'Cal Burned', unit: 'kcal', color: '#ff9f43', range: [200, 900] }
+};
+
+// Generate historical data seeded by day offset + device + email
+function getHistoricalData(device, daysBack) {
+  const r = device.ranges;
+  const user = getSession();
+  const emailHash = (user?.email || 'demo').split('').reduce((a,c) => a + c.charCodeAt(0), 0);
+  const deviceHash = device.id.split('').reduce((a,c) => a + c.charCodeAt(0), 0);
+  const today = new Date();
+
+  return Array.from({ length: daysBack }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (daysBack - 1 - i));
+    const dateNum = d.getFullYear() * 10000 + (d.getMonth()+1) * 100 + d.getDate();
+    const seed = dateNum + emailHash * 31 + deviceHash * 17;
+
+    let sc = 0;
+    function rndH(min, max) {
+      sc++;
+      let s = (seed * 1000 + sc) ^ 0xdeadbeef;
+      s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
+      s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
+      s = s ^ (s >>> 16);
+      return min + ((s >>> 0) % (max - min + 1));
+    }
+
+    const sleepH = rndH(r.sleep[0], r.sleep[1]);
+    const sleepMin = rndH(0, 59);
+    return {
+      date: d,
+      recovery: rndH(r.recovery[0], r.recovery[1]),
+      sleep: parseFloat((sleepH + sleepMin/60).toFixed(1)),
+      steps: rndH(r.steps[0], r.steps[1]),
+      hr: rndH(r.hr[0], r.hr[1]),
+      cal: rndH(r.cal[0], r.cal[1])
+    };
+  });
+}
+
+function getPeriodData(device, period) {
+  if (period === 'week') {
+    const days = getHistoricalData(device, 7);
+    return { points: days, labelFn: d => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.date.getDay()] };
+  }
+  if (period === 'month') {
+    // 4 weeks averaged
+    const days = getHistoricalData(device, 28);
+    const weeks = [0,1,2,3].map(w => {
+      const slice = days.slice(w*7, w*7+7);
+      return {
+        date: slice[0].date,
+        recovery: Math.round(slice.reduce((s,d)=>s+d.recovery,0)/7),
+        sleep: parseFloat((slice.reduce((s,d)=>s+d.sleep,0)/7).toFixed(1)),
+        steps: Math.round(slice.reduce((s,d)=>s+d.steps,0)/7),
+        hr: Math.round(slice.reduce((s,d)=>s+d.hr,0)/7),
+        cal: Math.round(slice.reduce((s,d)=>s+d.cal,0)/7)
+      };
+    });
+    return { points: weeks, labelFn: (_, i) => `Wk ${i+1}` };
+  }
+  // year — 12 months averaged
+  const days = getHistoricalData(device, 365);
+  const months = Array.from({length:12}, (_,m) => {
+    const slice = days.filter(d => d.date.getMonth() === (new Date().getMonth() - 11 + m + 12) % 12);
+    if (!slice.length) return null;
+    return {
+      date: slice[0].date,
+      recovery: Math.round(slice.reduce((s,d)=>s+d.recovery,0)/slice.length),
+      sleep: parseFloat((slice.reduce((s,d)=>s+d.sleep,0)/slice.length).toFixed(1)),
+      steps: Math.round(slice.reduce((s,d)=>s+d.steps,0)/slice.length),
+      hr: Math.round(slice.reduce((s,d)=>s+d.hr,0)/slice.length),
+      cal: Math.round(slice.reduce((s,d)=>s+d.cal,0)/slice.length)
+    };
+  }).filter(Boolean);
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return { points: months, labelFn: (d) => monthNames[d.date.getMonth()] };
+}
+
+function renderComparison() {
+  if (!connectedDevice) return;
+  const cfg = METRIC_CONFIG[compMetric];
+  const { points, labelFn } = getPeriodData(connectedDevice, compPeriod);
+  const vals = points.map(p => p[compMetric]);
+  const maxVal = Math.max(...vals);
+  const minVal = Math.min(...vals);
+  const avgVal = vals.reduce((s,v)=>s+v,0)/vals.length;
+
+  // Bar chart
+  const barsEl = document.getElementById('comp-bars');
+  const lblsEl = document.getElementById('comp-bar-lbls');
+  const chartMax = Math.max(...vals) * 1.1 || 1;
+
+  barsEl.innerHTML = points.map((p, i) => {
+    const val = p[compMetric];
+    const pct = Math.max(4, Math.round((val / chartMax) * 80));
+    const isToday = i === points.length - 1;
+    const displayVal = compMetric === 'steps' ? (val/1000).toFixed(1) : val;
+    return `
+      <div class="comp-bar-wrap">
+        <div class="comp-bar-val" style="font-size:9px">${displayVal}</div>
+        <div class="comp-bar" style="height:${pct}px;background:${isToday ? cfg.color : cfg.color+'55'}"></div>
+      </div>`;
+  }).join('');
+
+  lblsEl.innerHTML = points.map((p, i) => `
+    <div style="flex:1;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:1px;color:${i===points.length-1?'#fff':'var(--text3)'}">${labelFn(p, i)}</div>
+  `).join('');
+
+  // Summary
+  const avgDisplay = compMetric === 'steps' ? (avgVal/1000).toFixed(1)+'k' : Math.round(avgVal) + (compMetric==='sleep'?'h':'');
+  const bestDisplay = compMetric === 'steps' ? (maxVal/1000).toFixed(1)+'k' : maxVal + (compMetric==='sleep'?'h':'');
+  const worstDisplay = compMetric === 'steps' ? (minVal/1000).toFixed(1)+'k' : minVal + (compMetric==='sleep'?'h':'');
+
+  document.getElementById('comp-avg').textContent = avgDisplay;
+  document.getElementById('comp-best').textContent = bestDisplay;
+  document.getElementById('comp-worst').textContent = worstDisplay;
+
+  // Trend: compare first half vs second half
+  const half = Math.floor(vals.length/2);
+  const firstHalf = vals.slice(0,half).reduce((s,v)=>s+v,0)/half;
+  const secondHalf = vals.slice(half).reduce((s,v)=>s+v,0)/(vals.length-half);
+  const trendPct = firstHalf > 0 ? (((secondHalf-firstHalf)/firstHalf)*100).toFixed(1) : 0;
+  const trendEl = document.getElementById('comp-avg-trend');
+  if (parseFloat(trendPct) > 0) {
+    trendEl.textContent = `↑ ${trendPct}%`;
+    trendEl.className = 'comp-trend up';
+  } else if (parseFloat(trendPct) < 0) {
+    trendEl.textContent = `↓ ${Math.abs(trendPct)}%`;
+    trendEl.className = 'comp-trend down';
+  } else {
+    trendEl.textContent = '→ Stable';
+    trendEl.className = 'comp-trend';
+    trendEl.style.color = 'var(--text3)';
+  }
+}
+
+function switchPeriod(period, btn) {
+  compPeriod = period;
+  document.querySelectorAll('.comp-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderComparison();
+}
+
+function switchMetric(metric, btn) {
+  compMetric = metric;
+  document.querySelectorAll('.comp-metric-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderComparison();
+}
 async function init() {
   renderDeviceGrid();
   const user = getSession();
