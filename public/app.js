@@ -101,12 +101,16 @@ function today() {
 }
 
 const GYMS = [
-  'Gold\'s Gym',
   'Fitness Time',
-  'NuYu',
   'Leejam Sports',
-  'Curves',
-  'Oxygen Gym',
-  'My Gym',
+  'NuYu Fitness',
+  'Gold\'s Gym',
+  'Flex Gym',
+  'Body Masters',
+  'Armah Sports',
+  'Champion Fitness',
+  'Arena Fitness',
+  'Hybrid Gym',
+  'The Zone Gym',
   'Other'
 ];
